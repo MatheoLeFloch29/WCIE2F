@@ -25,9 +25,9 @@
 #' @importFrom lcmm estimates VarCov predictY
 #' @importFrom utils data
 #' @importFrom MASS mvrnorm
-#' @export
 #' @name WCIE2F
 #' @title Fonction WCIE2F
+#' @export
 WCIE2F <- function(mexpo,var.time, timerange, step=1, weightbasis="NS", knots=3,
                    data, reg.type="RL", model,n_boot=500){
 
@@ -37,8 +37,8 @@ WCIE2F <- function(mexpo,var.time, timerange, step=1, weightbasis="NS", knots=3,
   if(!inherits(mexpo,"hlme")) stop("The argument mexpo must be a hlme object")
   if (is.null(data)==T) stop("the argument outcome_data is missing")
   if (is.null(model)==T) stop("the argument outcomeformula is missing")
-  if (timerange[1]<min(var.time)) stop("the argument timerange must be equal or higher then the minimum time value")
-  if (timerange[2]> max(var.time)) stop("the argument timerange must be equal or less then the maximum time value")
+  if (timerange[1]<min(mexpo$data[var.time])) stop("the argument timerange must be equal or higher then the minimum time value")
+  if (timerange[2]>max(mexpo$data[var.time])) stop("the argument timerange must be equal or less then the maximum time value")
 
   #####################################################
   ##### 1) prediction individuelle de l'exposition ####
@@ -107,7 +107,9 @@ WCIE2F <- function(mexpo,var.time, timerange, step=1, weightbasis="NS", knots=3,
 
   # save all the bootstrap dans boot_result
 
-  boot_results <- lapply(1:n_boot, doOneBoot)
+  boot_results <- lapply(1:n_boot, function(i) {
+                          doOneBoot(i = i,boot_params=boot_params)}
+                         )
 
   # remplacer la boucle for par un replicate qui utilise la fonction doOneBoot et qui sort :
   # -une liste des paramètres estimé pour chaque bootstrap
@@ -179,3 +181,7 @@ WCIE2F <- function(mexpo,var.time, timerange, step=1, weightbasis="NS", knots=3,
   return(result)
 
 }
+
+
+
+

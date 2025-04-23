@@ -31,7 +31,7 @@ WCIE_estimation <- function(mexpo,var.time, timerange, step,
 
   # Créer un jeu de données avec le même nb d'individu et le bon nombre de ligne par individu
 
-  time_seq <- seq(from=timerange_max,to=timerange_min,by=-step) # sequence de mesure dans la fenêtre choisis
+  time_seq <- seq(from=timerange_min,to=timerange_max,by=step) # sequence de mesure dans la fenêtre choisis
 
   nb_ind <- mexpo$ns  # nb d'individu
   new_data <- data.frame(id= rep(seq(1,nb_ind),

@@ -1,11 +1,12 @@
 # fonction utiliser pour faire i échantillon bootsrtap
 
 #' @param i la ligne i correspondant aux paramètres dans boot_params
+#' @param boot_params fichier avec l'ensemble des paramètres bootstrap
 #' @return coefficient et la matrice de variance covariance
 #' @export
-#' @name dOneBoot
+#' @name doOneBoot
 #' @title Fonction dOneBoot
-doOneBoot <- function(i){
+doOneBoot <- function(boot_params,i){
   call_hlme<-""
   # Transformer l'appel du modèle en chaîne de caractères et enlever data=nom du jeu de donnée de l'utilisateur
   mexpo$call$data <- NULL
@@ -23,7 +24,7 @@ doOneBoot <- function(i){
   # obliger de faire sans passer par une fonction
   bpt_WCIE<-WCIE_estimation(mexpo = m_expo_boot, timerange = timerange,
                             step = step,var.time = var.time,weightbasis = weightbasis,knots = knots,
-                            data = data, reg.type = re.type, model = model)
+                            data = data, reg.type = reg.type, model = model)
 
   return(list(bpt_WCIE[[1]]$coefficients,vcov(bpt_WCIE[[1]])))
 }
