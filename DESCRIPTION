@@ -20,3 +20,5 @@ Imports:
     lcmm,
     MASS,
     splines
+URL: https://github.com/MatheoLeFloch29/wciepackage
+BugReports: https://github.com/MatheoLeFloch29/wciepackage/issues
