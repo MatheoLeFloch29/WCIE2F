@@ -17,8 +17,9 @@ LazyData: true
 RoxygenNote: 7.3.2
 Imports: 
     dplyr,
-    lcmm,
+    stats,
     MASS,
-    splines
+    splines,
+    lcmm
 URL: https://github.com/MatheoLeFloch29/wciepackage
 BugReports: https://github.com/MatheoLeFloch29/wciepackage/issues

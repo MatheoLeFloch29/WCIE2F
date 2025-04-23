@@ -1,18 +1,23 @@
 # description de la fonction WCIE_estimation
 # Cette fonction permet d'obtenir les estimations beta_k de la mesure d'exposition : WCIE
 
-# les paramètres à renseigner sont :
-# mexpo : l'objet hlme contenant le modèle de toute l'exposition
-# var.time : la variable temporelle utilisée
-# timerange : la fenêtre de temps d'exposition que l'utilisateur souhaite analyser
-# step : le pas de temps entre chaque observation dans la fenêtre de temps
-# weightbasis : la fonction à attribuer au poids de chaque temps d"exposition
-# knots : le nombre de noeuds internes si utilisation de splines
-# data : les données avec la variable à étudier
-# reg.type : le type de regression à utiliser pour étudier la variable d'intérêt
-# model : la formule du modèle à utiliser pour étudier la variable
-
-
+#' @param mexpo l'objet hlme contenant le modèle de toute l'exposition
+#' @param var.time la variable temporelle utilisée
+#' @param timerange fenêtre de temps d'exposition que l'utilisateur souhaite analyser
+#' @param step pas de temps entre chaque observation dans la fenêtre de temps
+#' @param weightbasis la fonction à attribuer au poids de chaque temps d"exposition
+#' @param knots le nombre de noeuds internes si utilisation de splines
+#' @param data les données avec la variable à étudier
+#' @param reg.type le type de regression à utiliser pour étudier la variable d'intérêt
+#' @param model la formule du modèle à utiliser pour étudier la variable
+#' @return estimation du modèle avec l'outcome
+#' @import dplyr
+#' @importFrom splines ns
+#' @importFrom stats glm quantile aggregate
+#' @importFrom lcmm estimates VarCov predictY
+#' @export
+#' @name WCIE_estimation
+#' @title Fonction WCIE_estimation
 WCIE_estimation <- function(mexpo,var.time, timerange, step,
                             weightbasis, knots, data, reg.type, model){
 

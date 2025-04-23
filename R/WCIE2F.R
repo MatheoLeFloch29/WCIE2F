@@ -1,8 +1,3 @@
-# Hello, world!
-#
-# This is an example function named 'hello'
-# which prints 'Hello, world!'.
-#
 # You can learn more about package authoring with RStudio at:
 #
 #   https://r-pkgs.org
@@ -13,20 +8,37 @@
 #   Check Package:             'Ctrl + Shift + E'
 #   Test Package:              'Ctrl + Shift + T'
 
-WCIE2F <- function(mexpo,var.time, timerange, pas=1, weightbasis="NS", knots=3,
+#' @param mexpo l'objet hlme contenant le modèle de toute l'exposition
+#' @param var.time la variable temporelle utilisée
+#' @param timerange fenêtre de temps d'exposition que l'utilisateur souhaite analyser
+#' @param step pas de temps entre chaque observation dans la fenêtre de temps
+#' @param weightbasis la fonction à attribuer au poids de chaque temps d"exposition
+#' @param knots le nombre de noeuds internes si utilisation de splines
+#' @param data les données avec la variable à étudier
+#' @param reg.type le type de regression à utiliser pour étudier la variable d'intérêt
+#' @param model la formule du modèle à utiliser pour étudier la variable
+#' @param n_boot nombre d'échantillon bootsrap à tirer pour le calcul de la variance
+#' @return estimation du modèle avec l'outcome + variance calculer avec bootstrap paramétrique
+#' @import dplyr
+#' @importFrom splines ns
+#' @importFrom stats glm quantile aggregate pnorm qnorm as.formula binomial knots model.matrix step vcov
+#' @importFrom lcmm estimates VarCov predictY
+#' @importFrom utils data
+#' @importFrom MASS mvrnorm
+#' @export
+#' @name WCIE2F
+#' @title Fonction WCIE2F
+WCIE2F <- function(mexpo,var.time, timerange, step=1, weightbasis="NS", knots=3,
                    data, reg.type="RL", model,n_boot=500){
 
   ptm <- proc.time()
 
   if(is.null(mexpo$data)==T) stop("The argument mexpo need to specify returndata = T")
   if(!inherits(mexpo,"hlme")) stop("The argument mexpo must be a hlme object")
-  if (any((windows_max-windows_min) %% pas != 0)) stop("the argument time must be a multiple of argument pas")
-  if (is.null(outcome_data)==T) stop("the argument outcome_data is missing")
-  if (is.null(outcomeformula)==T) stop("the argument outcomeformula is missing")
-  if (windows_min<min(mexpo$data[sub(".*?\\((\\w+).*", "\\1", mexpo$call[[3]][2])])
-  ) stop("the argument windows_min must be equal or higher then the minimum time value")
-  if (windows_max> max(mexpo$data[sub(".*?\\((\\w+).*", "\\1", mexpo$call[[3]][2])])
-  ) stop("the argument windows_max must be equal or less then the maximum time value")
+  if (is.null(data)==T) stop("the argument outcome_data is missing")
+  if (is.null(model)==T) stop("the argument outcomeformula is missing")
+  if (timerange[1]<min(var.time)) stop("the argument timerange must be equal or higher then the minimum time value")
+  if (timerange[2]> max(var.time)) stop("the argument timerange must be equal or less then the maximum time value")
 
   #####################################################
   ##### 1) prediction individuelle de l'exposition ####
@@ -93,30 +105,7 @@ WCIE2F <- function(mexpo,var.time, timerange, pas=1, weightbasis="NS", knots=3,
   ########### start bootsrap ################
   ###########################################
 
-  # Make a function to save all the bootstrap
-
-  doOneBoot <- function(i){
-    call_hlme<-""
-    # Transformer l'appel du modèle en chaîne de caractères et enlever data=nom du jeu de donnée de l'utilisateur
-    mexpo$call$data <- NULL
-    call_hlme <- deparse(mexpo$call)
-    # remettre l'argument data = mexpo$data pour récupérer le jeu de donnée de l'utilisateur
-    call_hlme <- gsub("\\)$", ", data=mexpo$data)", call_hlme)
-    # Ajouter l'argument maxiter = 0 à la chaîne
-    call_hlme <- gsub("\\)$", ", maxiter = 0)", call_hlme)
-    #ajouter le B=boot_params[i,] pour utiliser les paramètres des n bootsrap
-    call_hlme <- gsub("\\)$", ", B=boot_params[i,])", call_hlme)
-
-    # Évaluer la nouvelle chaîne comme un appel de fonction
-    m_expo_boot <- eval(parse(text = call_hlme))
-
-    # obliger de faire sans passer par une fonction
-    bpt_WCIE<-WCIE_estimation(mexpo = m_expo_boot, windows_min = windows_min,windows_max = windows_max,
-                              pas = pas,spline = spline,knots = knots,outcome_data = outcome_data,
-                              outcome_type = outcome_type,outcomeformula = outcomeformula)
-
-    return(list(bpt_WCIE[[1]]$coefficients,vcov(bpt_WCIE[[1]])))
-  }
+  # save all the bootstrap dans boot_result
 
   boot_results <- lapply(1:n_boot, doOneBoot)
 
@@ -188,17 +177,5 @@ WCIE2F <- function(mexpo,var.time, timerange, pas=1, weightbasis="NS", knots=3,
 
   class(result) <- "WCIE2F"
   return(result)
-
-}
-
-
-summary.WCIE2F <- function(object) {
-  cat( "Call for",object$outcome_type,"model :\n")
-  print(deparse(object$outcome_call))
-  cat("\n")
-  cat("Coefficient :\n")
-  object$estimate
-  cat("\n")
-  cat("à voir ce que l'on veut rajouter dans le summary ? \n")
 
 }
