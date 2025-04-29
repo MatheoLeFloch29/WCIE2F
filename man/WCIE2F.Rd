@@ -2,7 +2,7 @@
 % Please edit documentation in R/WCIE2F.R
 \name{WCIE2F}
 \alias{WCIE2F}
-\title{Fonction WCIE2F}
+\title{Estimation of the Weighted Cumulative Effect with Two-Level Bootstrap \code{WCIE2F}}
 \usage{
 WCIE2F(
   mexpo,
@@ -18,29 +18,179 @@ WCIE2F(
 )
 }
 \arguments{
-\item{mexpo}{l'objet hlme contenant le modèle de toute l'exposition}
+\item{mexpo}{An object of class \code{hlme} from the \code{lcmm} package, used to model the exposure process.
+The object must be created using the \code{hlme} function with specific arguments provided.
+The fixed effects formula and the random effects formula must be specified. The \code{subject} argument
+must indicate the subject ID, and the dataset must be provided via the \code{data} argument.
+It is essential to include \code{returnData = TRUE} in the function call to ensure that the internal data can be accessed.}
 
-\item{var.time}{la variable temporelle utilisée}
+\item{var.time}{character indicating the name of the time variable
+in the model \code{mexpo}.}
 
-\item{timerange}{fenêtre de temps d'exposition que l'utilisateur souhaite analyser}
+\item{timerange}{Numeric vector of length 2
+indicating the desired time window for exposure (min, max).}
 
-\item{step}{pas de temps entre chaque observation dans la fenêtre de temps}
+\item{step}{Step between two consecutive time points in the time window indicating in \code{timerange}.}
 
-\item{weightbasis}{la fonction à attribuer au poids de chaque temps d"exposition}
+\item{weightbasis}{Type of temporal weighting function used to estimate the Weighted Cumulative Indirect Effects (WCIE).
+This specifies the functional form used to model the influence of past exposures over time.
+Currently, the following options are available: \code{"NS"} for natural splines (implemented),
+\code{"BS"} for B-splines (to be developed), and \code{"PS"} for P-splines (to be developed).}
 
-\item{knots}{le nombre de noeuds internes si utilisation de splines}
+\item{knots}{Number of internal knots for the splines (used only for splines temporal weighting function).}
 
-\item{data}{les données avec la variable à étudier}
+\item{data}{A data frame containing the variables specified in the outcome model
+\code{model} including the outcome variable. This dataset will be used to estimate the
+outcome model, and the WCIE variables calculated previously will be added to this
+dataset prior to model fitting.}
 
-\item{reg.type}{le type de regression à utiliser pour étudier la variable d'intérêt}
+\item{reg.type}{Type of outcome model: \code{"logistic"}, \code{"cox"}, ...}
 
-\item{model}{la formule du modèle à utiliser pour étudier la variable}
+\item{model}{two-sided linear formula object for the outcome model. The response outcome is on
+the left of ~ and the covariates are separated by + on the right of ~. To include the effect of past exposure,
+you must explicitly add \code{WCIE} (or interaction terms such as \code{WCIE:sex}) to the formula.
+For example, \code{Y ~ WCIE + age + sex} or \code{Y ~ WCIE:sex + age} are valid formulas.}
 
-\item{n_boot}{nombre d'échantillon bootsrap à tirer pour le calcul de la variance}
+\item{n_boot}{Number of bootstrap replicates to perform (default = 500).
+Bootstrapping is used to approximate the estimation uncertainty and compute the variance of the estimations.}
 }
 \value{
-estimation du modèle avec l'outcome + variance calculer avec bootstrap paramétrique
+A list containing:
+
+\item{estimate}{Table of final outcome model estimators: mean (Estimate),
+standard error (Se), confidence intervals (con.low, conf.high), z-statistic,
+and p-values.}
+\item{data.expo}{Intermediate data set with individual predictions.}
+\item{data.outcome}{Data set used to fit the outcome model.}
+\item{effect.plot}{Graph representing the effects of exposure history.}
+\item{mexpo}{Exposure model \code{hlme} object provided at the beginning.}
+\item{reg.type}{Type of regression model used.}
+\item{mean.effect}{Mean effect of exposure history.}
+\item{sd.mean.effect}{Variance of the mean effect of exposure history over time.}
+\item{nboot}{Number of bootstrap replicates.}
+\item{call}{The matched call for the outcome model.}
+\item{knots}{Number of internal knots for splines (used only if \code{weightbasis = "NS"}).}
+\item{V}{Variance-covariance matrix (intra + inter) of the estimators.}
+\item{var.time}{Name of the time variable used in the model.}
+\item{AIC}{Mean AIC of the outcome model across the \code{nboot} bootstrap replicates.}
+\item{loglike}{Mean log-likelihood of the outcome model across the \code{nboot} bootstrap replicates.}
+\item{n}{Number of subjects.}
+\item{nb.subj.del}{Number of subjects removed.}
+\item{time.processing}{Total computation time (proc.time() object).}
 }
 \description{
-Fonction WCIE2F
+This function estimates the effects of a past exposure on a health outcome
+using the WCIE method, accounting for parameter uncertainty through a two-level bootstrap.
+It uses a longitudinal exposure model \code{hlme} and an outcome model
+to compute time-weighted effects of exposure.
+}
+\details{
+\strong{A. The estimation follows these steps:}
+
+(1) Extraction of the parameters from the mixed model \code{mexpo} :
+The function extracts the mean (\code{mu}) and the variance-covariance matrix (\code{Sigma})
+estimated parameters using \code{estimates()} and \code{VarCov()}.
+
+(2) Generation of bootstrap parameter sets :
+Using multivariate normal random sampling (\code{mvrnorm()}), \code{n_boot} samples of
+parameters are simulated around the estimated mean and variance of the exposure model.
+
+(3) Cholesky transformation (if necessary) :
+If the random effects are correlated (i.e., \code{idiag = 0}), the Cholesky components
+are transformed into full variance-covariance matrices for each bootstrap.
+If \code{idiag = 1}, only the variances are adjusted by squaring.
+
+(4) Repeated estimation of WCIE and the outcome model :
+For each bootstrap parameter set, the WCIE is recalculated and the outcome model is fitted.
+ This step uses the \code{doOneBoot()} function, which
+returns for each iteration :
+
+\itemize{
+ \item{The estimated coefficients of the outcome model,}
+ \item{The intra-individual variance matrix.}
+}
+
+(5) Calculation of bootstrap variances (Gelman-Rubin method) :
+The total variance of the parameters is decomposed as follows :
+
+\itemize{
+ \item\emph{Intra-bootstrap variance} : average of the variance matrices from
+ each iteration.
+ \item\emph{Inter-bootstrap variance} : dispersion of the estimators from the different
+ simulated parameter sets, calculated using the Gelman-Rubin formula: \cr
+ \deqn{\frac{n+1}{n(n-1)} \sum_{i=1}^n (\theta_i - \bar{\theta})(\theta_i - \bar{\theta})^T}
+ \item\emph{Total variance} : sum of the two components above.
+}
+
+(6) Construction of confidence intervals and p-values :
+From the total variance, a corrected standard deviation is calculated. 95% confidence
+intervals, z-values, and p-values are then produced for each parameter.
+
+(7) Temporal Exposure Effect Estimation :
+Based on the fitted model, the WCIE effects are computed as a linear combination of splines weighted by their estimated coefficients.
+This approach estimates the time-varying effect of past exposure over a specified time window (defined by \code{timerange}).
+
+Two scenarios are handled:
+\itemize{
+  \item \emph{Without interactions:} The effect at each time point is given by:
+  \deqn{w(t) = B(t)^T \theta}
+  where \eqn{B(t)} is the spline basis at time \eqn{t}, and \eqn{\theta} are the estimated WCIE coefficients.
+
+  \item \emph{With interactions:} The time-varying effect is modified according to covariates (e.g., sex, age) using the model’s design matrix.
+  The spline × covariate interaction terms are incorporated as:
+  \deqn{w(t,x) = B(t)^T \theta + \sum_j B(t)^T \theta_j x_j}
+}
+
+(8) Uncertainty Quantification :
+The variance of the WCIE effect at each time point is computed by using the Delta method
+with an extended form for interaction cases. These variances allow the construction of 95% confidence intervals around the estimated effect.
+
+An overall average effect across the time window is also estimated
+and its variance is derived based on the average of the spline basis across time.
+
+(9) Graphical Representation :
+A graphical output is generated to visualize the estimated time-varying effect of exposure along with its confidence interval.
+This helps identify critical periods where exposure has a significant impact on the outcome.
+
+
+\strong{B. USAGE PRECAUTIONS:}
+
+(1) The estimation of WCIE relies on the quality of the exposure model provided in \code{mexpo}.
+Since this model is used to simulate exposure histories, incorrect specification of fixed
+or random effects may bias the WCIE estimates. It is strongly recommended to use natural
+splines (\code{NS}) for the time structure and ensure that returndata = TRUE is specified in the \code{hlme}
+object.
+
+(2) The weighting function used to estimate the WCIE over time can
+lead to instability or overfitting if the number of \code{knots} is too high or if the time window
+(\code{timerange}) is poorly chosen. Users should inspect the shape of the weight function and
+consider simplifying it if convergence issues or unreasonable effects are detected.
+
+(3) The bootstrap procedure used to estimate standard errors can be computationally intensive.
+With large datasets or many bootstrap replicates (\code{n_boot}), execution time may increase
+significantly. It is advised to start with a smaller number of replicates to ensure model
+convergence before increasing \code{n_boot} for final inference.
+
+(4) Convergence problems can occur in the outcome model if the WCIE variables are highly
+collinear, especially when using a fine time grid (\code{step}) or too many \code{knots}. If the model
+fails to converge, consider reducing the number of time points or the complexity of the
+spline basis.
+
+(5) When the outcome model includes additional covariates or interaction terms, care should
+be taken to avoid overfitting or misinterpretation of the WCIE effect. The WCIE component
+should be interpreted as a marginal cumulative effect, conditional on other covariates in
+the model
+}
+\references{
+Maud Wagner et al. “Time-varying associations between an exposure history and a subsequent health
+outcome : a landmark approach to identify critical windows”. In : BMC Med Res Methodol (2021).
+doi : 10.1186/s12874-021-01403-w
+}
+\seealso{
+\code{\link{summary.WCIE2F}}
+\code{\link{WCIEestimation}}
+\code{\link{doOneBootWCIE}}
+}
+\author{
+un super beau gosse
 }
