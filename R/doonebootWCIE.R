@@ -10,7 +10,11 @@
 #' fit the outcome model. It returns the estimated regression coefficients, their variance-covariance matrix,
 #' the AIC, and the log-likelihood of the outcome model.
 #'
-#'
+#' @param mexpo An object of class \code{hlme} from the \code{lcmm} package, used to model the exposure process.
+#' The object must be created using the \code{hlme} function with specific arguments provided.
+#' The fixed effects formula and the random effects formula must be specified. The \code{subject} argument
+#' must indicate the subject ID, and the dataset must be provided via the \code{data} argument.
+#' It is essential to include \code{returnData = TRUE} in the function call to ensure that the internal data can be accessed.
 #' @param i Integer. The row index corresponding to a bootstrap sample in \code{boot_params}.
 #' @param boot_params A matrix or data frame containing all bootstrap parameter vectors.
 #' @param var.time character indicating the name of the time variable
@@ -22,7 +26,8 @@
 #' This specifies the functional form used to model the influence of past exposures over time.
 #' Currently, the following options are available: \code{"NS"} for natural splines (implemented),
 #' \code{"BS"} for B-splines (to be developed), and \code{"PS"} for P-splines (to be developed).
-#' @param knots Number of internal knots for the splines (used only for splines temporal weighting function).
+#' @param knots number of internal knots
+#' @param knots.vector Vector of internal knots for the splines (used only for splines temporal weighting function).
 #' @param data A data frame containing the variables specified in the outcome model
 #' \code{model} including the outcome variable. This dataset will be used to estimate the
 #' outcome model, and the WCIE variables calculated previously will be added to this
@@ -44,9 +49,9 @@
 #' @name doOneBootWCIE
 #'
 #' @export
-doOneBootWCIE <- function(boot_params,i,timerange,
-                      step,var.time,weightbasis,knots,
-                      data, reg.type, model){
+doOneBootWCIE <- function(boot_params,i,times,mexpo,
+                          var.time,weightbasis,knots,knots.vector,
+                          data, reg.type, model){
   call_hlme<-""
   # Transformer l'appel du modèle en chaîne de caractères et enlever data=nom du jeu de donnée de l'utilisateur
   mexpo$call$data <- NULL
@@ -62,9 +67,10 @@ doOneBootWCIE <- function(boot_params,i,timerange,
   m_expo_boot <- eval(parse(text = call_hlme))
 
   # obliger de faire sans passer par une fonction
-  bpt_WCIE<-WCIEestimation(mexpo = m_expo_boot, timerange = timerange,
-                            step = step,var.time = var.time,weightbasis = weightbasis,knots = knots,
-                            data = data, reg.type = reg.type, model = model)
+  bpt_WCIE<-WCIEestimation(mexpo = m_expo_boot, times = times,
+                           var.time = var.time,weightbasis = weightbasis,knots = knots,
+                           knots.vector = knots.vector,
+                           data = data, reg.type = reg.type, model = model)
 
   # changer la façon de récupérer la matrice de variance covariance suivant le reg.type
 

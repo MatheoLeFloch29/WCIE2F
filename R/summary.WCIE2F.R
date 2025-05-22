@@ -17,25 +17,25 @@
 #' }
 summary.WCIE2F <- function(object, ...) {
 
-    cat("Weighted Cumulative Index Estimation (WCIE2F) \n")
-    cat("     fitted by weighted bootstrap method \n")
-    cat(" \n")
-    cat(object$call, "\n")
-    cat(" \n")
-    if (object$reg.type=="logistic") {
+  cat("Weighted Cumulative Index Estimation (WCIE2F) \n")
+  cat("     fitted by weighted bootstrap method \n")
+  cat(" \n")
+  cat(object$call, "\n")
+  cat(" \n")
+  if (object$reg.type=="logistic") {
     cat("Outcome model type:", object$reg.type, "\n")
-
-      cat("Statistical Model:", "\n")
-      #cat(paste("     Dataset:", as.character(as.expression(object$call[]))),"\n")
-      cat(paste("     Number of subjects:", object$n),"\n")
-      #cat(paste("     Number of observations:", "wait"),"\n")
-      #if(length(x$na.action))
-      cat(paste("     Number of subjects deleted:", object$nb.subj.del),"\n")
-      cat(" \n")
+    cat(" \n")
+    cat("Statistical Model:", "\n")
+    #cat(paste("     Dataset:", as.character(as.expression(object$call[]))),"\n")
+    cat(paste("     Number of subjects:", object$n),"\n")
+    #cat(paste("     Number of observations:", "wait"),"\n")
+    #if(length(x$na.action))
+    cat(paste("     Number of subjects deleted:", object$nb.subj.del),"\n")
+    cat(" \n")
     cat("Weighting basis:", object$weightbasis, "\n")
     cat("Number of bootstrap replications:", object$nboot, "\n")
     cat("Time variable:", object$var.time, "\n")
-    cat("Knots for weight basis:", object$knots, "\n\n")
+    cat("Knots for weight basis:", length(object$knots.quantile), "\n\n")
     cat(" \n")
     cat("Parameter Estimates (bootstrap-based):\n")
     cat(" \n")
@@ -63,7 +63,7 @@ summary.WCIE2F <- function(object, ...) {
 
 
   }
-    invisible(object)
+  invisible(object)
 }
 
 

@@ -7,11 +7,12 @@
 doOneBootWCIE(
   boot_params,
   i,
-  timerange,
-  step,
+  times,
+  mexpo,
   var.time,
   weightbasis,
   knots,
+  knots.vector,
   data,
   reg.type,
   model
@@ -22,10 +23,11 @@ doOneBootWCIE(
 
 \item{i}{Integer. The row index corresponding to a bootstrap sample in \code{boot_params}.}
 
-\item{timerange}{Numeric vector of length 2
-indicating the desired time window for exposure (min, max).}
-
-\item{step}{Step between two consecutive time points in the time window indicating in \code{timerange}.}
+\item{mexpo}{An object of class \code{hlme} from the \code{lcmm} package, used to model the exposure process.
+The object must be created using the \code{hlme} function with specific arguments provided.
+The fixed effects formula and the random effects formula must be specified. The \code{subject} argument
+must indicate the subject ID, and the dataset must be provided via the \code{data} argument.
+It is essential to include \code{returnData = TRUE} in the function call to ensure that the internal data can be accessed.}
 
 \item{var.time}{character indicating the name of the time variable
 in the model \code{mexpo}.}
@@ -35,7 +37,9 @@ This specifies the functional form used to model the influence of past exposures
 Currently, the following options are available: \code{"NS"} for natural splines (implemented),
 \code{"BS"} for B-splines (to be developed), and \code{"PS"} for P-splines (to be developed).}
 
-\item{knots}{Number of internal knots for the splines (used only for splines temporal weighting function).}
+\item{knots}{number of internal knots}
+
+\item{knots.vector}{Vector of internal knots for the splines (used only for splines temporal weighting function).}
 
 \item{data}{A data frame containing the variables specified in the outcome model
 \code{model} including the outcome variable. This dataset will be used to estimate the
@@ -48,6 +52,11 @@ dataset prior to model fitting.}
 the left of ~ and the covariates are separated by + on the right of ~. To include the effect of past exposure,
 you must explicitly add \code{WCIE} (or interaction terms such as \code{WCIE:sex}) to the formula.
 For example, \code{Y ~ WCIE + age + sex} or \code{Y ~ WCIE:sex + age} are valid formulas.}
+
+\item{timerange}{Numeric vector of length 2
+indicating the desired time window for exposure (min, max).}
+
+\item{step}{Step between two consecutive time points in the time window indicating in \code{timerange}.}
 }
 \value{
 A list containing:

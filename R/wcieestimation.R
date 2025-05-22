@@ -1,4 +1,4 @@
-#'Estimation of the Weighted Cumulative Effect with Two-Level
+#' Estimation of the Weighted Cumulative Effect with Two-Level
 #'
 #' @description
 #' This function estimates the effect of an exposure history on a health outcome
@@ -79,7 +79,8 @@
 #' This specifies the functional form used to model the influence of past exposures over time.
 #' Currently, the following options are available: \code{"NS"} for natural splines (implemented),
 #' \code{"BS"} for B-splines (to be developed), and \code{"PS"} for P-splines (to be developed).
-#' @param knots Number of internal knots for the splines (used only for splines temporal weighting function).
+#' @param knots number of internal knots
+#' @param knots.vector Vector of internal knots for the splines (used only for splines temporal weighting function).
 #' @param data A data frame containing the variables specified in the outcome model
 #' \code{model} including the outcome variable. This dataset will be used to estimate the
 #' outcome model, and the WCIE variables calculated previously will be added to this
@@ -117,32 +118,54 @@
 #' doi : 10.1186/s12874-021-01403-w
 #' @name WCIEestimation
 #' @export
-WCIEestimation <- function(mexpo,var.time, timerange, step,
-                            weightbasis, knots, data, reg.type, model){
+WCIEestimation <- function(mexpo,var.time, times,
+                           weightbasis, knots,knots.vector, data, reg.type, model){
 
   #####################################################
   ##### 1) prediction individuelle de l'exposition ####
   #####################################################
 
   # fenêtre d'exposition souhaitée par l'utilisateur
-  timerange_min <- timerange[1]
-  timerange_max <- timerange[2]
+  timerange_min <- times[1]
+  timerange_max <- times[2]
 
   # Créer un jeu de données avec le même nb d'individu et le bon nombre de ligne par individu
 
-  time_seq <- seq(from=timerange_min,to=timerange_max,by=step) # sequence de mesure dans la fenêtre choisis
+  time_seq <- seq(from=timerange_min,to=timerange_max,by=times[3]) # sequence de mesure dans la fenêtre choisis
+
 
   nb_ind <- mexpo$ns  # nb d'individu
   id_seq<-mexpo$pprob[[mexpo$call[[4]]]] # séquence d'identifiant utilisée dans le modèle (en vecteur)
 
-  new_data <- data.frame(id= rep(id_seq, each = length(time_seq)) # reprendre la séquence d'ID données par les data de l'individu
-  )
+  #new_data <- data.frame(id= rep(id_seq, each = length(time_seq))) # reprendre la séquence d'ID données par les data de l'individu
+
 
   # renommer l'identifiant comme celui de l'utilisateur
-  colnames(new_data)[1]<- mexpo$call[[4]]
+  #colnames(new_data)[1]<- mexpo$call[[4]]
 
   # tire une séquence pour chaque individu de la fenêtre qu'il veut analyser
-  new_data[var.time] <- rep(time_seq, nb_ind)
+  #new_data[var.time] <- rep(time_seq, nb_ind)
+
+  # si on rajoute de l'aléatoire sur la date de visite (chiffre à virgule plutôt que entier)? voir si
+  # on arrive à estimer plus de WCIE
+
+  # Génération de la table avec temps irréguliers pour chaque individu
+  new_data <- do.call(rbind, lapply(id_seq, function(id) {
+    # Ajouter un bruit aléatoire à chaque point de temps "arrondir à n_after pour correspondre step_fixe
+    t_ind <- time_seq + runif(length(time_seq), -abs(times[4]), abs(times[4]))
+
+    # (optionnel) Forcer le dernier point à être exactement times[2] si il est = 0
+    if (timerange_max == 0) t_ind[length(t_ind)] <- timerange_max
+    data.frame(id = id, time = t_ind)
+    # on peut faire pareil pour la première valeur
+  }))
+
+  # renommer comme l'utilisateur
+  colnames(new_data)[1]<- mexpo$call[[4]]
+  colnames(new_data)[2]<- var.time
+
+
+
 
   #########################################################################################################################
   ###################### prendre en compte les différentes fonctions du temps possible que l'utilisateur peut rentrer #####
@@ -153,7 +176,7 @@ WCIEestimation <- function(mexpo,var.time, timerange, step,
   # obligation de demander de remplir directementla fonction dans la formule du modèle hlmr sinon impossible de connaitre ce que la personne à
   # utiliser comme fonction
 
-  # recompile les effets aléatoires pour la nouvelle fenêtre de données (pour n'importe quelle faction du temps ou pas)
+  # recompile les effets aléatoires pour la nouvelle fenêtre de données (pour n'importe quelle fonction du temps ou pas)
 
   variable_RE <- model.matrix(as.formula(paste("~", mexpo$call[[3]][2])), data = new_data)
 
@@ -165,43 +188,56 @@ WCIEestimation <- function(mexpo,var.time, timerange, step,
 
   ######## predexpo ###############
 
-  # prediction (du modèle)predictY au temps de la fenêtre donné
-  predexpo <- predictY(mexpo,newdata = new_data,var.time = var.time)
+  head(predictRE(mexpo,mexpo$data))
 
-  new_data <- cbind(new_data, predexpo$pred)
+  head(mexpo$predRE)
+
+# faire une boucle sur les prédictions car on peut que faire une seul à la fois
+
+  new_data$Ypred <- NA
+  for (n in id_seq) {
+    #récupérer les random effect de l'individu n
+    truc <- mexpo$predRE[mexpo$predRE[[mexpo$call[[4]]]]==n,]
+    # faire la prediction de cette individu
+    new_pred<-predictY(mexpo,newdata = new_data[new_data[[mexpo$call[[4]]]]==n,],
+                       predRE = truc,var.time = var.time)
+
+    # merge ces prédictions au new_data
+    new_data$Ypred[new_data[[mexpo$call[[4]]]]==n] <- new_pred$pred
+  }
 
   ######### +  les predRE si il y  a des effets aléatoire dans le modèle ############
 
   # récupérer les paramêtres des effets aléatoires du model et les renommer (prendre en compte la présence d'un intercept aléatoire)
-  predRE <- mexpo$predRE
-  if((grepl("^-1", as.character(mexpo$call$random)[2])==F)){
-    variable_RE <- variable_RE[,-1] # enlever l'intercept du varRE généré par le model.matrix
-    for (h in 1:(ncol(predRE)-2)) {
-      colnames(predRE)[h+2] <- paste0("predRE",h)
-    }
-  }else{ # si pas d'intercept aléatoire
-    for (h in 1:(ncol(predRE)-1)) {
-      colnames(predRE)[h+1] <- paste0("predRE",h)
-    }
-  }
-  new_data <- merge(new_data, predRE,by =  mexpo$call[[4]]) #merge les predRE (effets aléatoires) par individu
+  #predRE <- mexpo$predRE
+  #if((grepl("^-1", as.character(mexpo$call$random)[2])==F)){
+  #  variable_RE <- variable_RE[,-1] # enlever l'intercept du varRE généré par le model.matrix
+  #  for (h in 1:(ncol(predRE)-2)) {
+  #    colnames(predRE)[h+2] <- paste0("predRE",h)
+  #  }
+  #}else{ # si pas d'intercept aléatoire
+  #  for (h in 1:(ncol(predRE)-1)) {
+  #    colnames(predRE)[h+1] <- paste0("predRE",h)
+  #  }
+  #}
+  #new_data <- merge(new_data, predRE,by =  mexpo$call[[4]]) #merge les predRE (effets aléatoires) par individu
 
   # si présence d'un intercept aléatoire alors le rajouter dans le calcul de la prédiction
-  if(grepl("^-1", as.character(mexpo$call$random)[2])==F){
-    new_data$Ypred <- new_data$Ypred + new_data$intercept
-  }
+  #if(grepl("^-1", as.character(mexpo$call$random)[2])==F){
+  #  new_data$Ypred <- new_data$Ypred + new_data$intercept
+  #}
 
   # predictY + effet aléatoire*variableRE
   # si au moins 2 colonnes alors faire la boucle sinon pas de boucle (else)
-  if(is.vector(variable_RE)==F) {
-    for (m in 1:(ncol(variable_RE))) {
-      new_data$Ypred <- new_data$Ypred +
-        (variable_RE[,m]*new_data[paste0("predRE",m)])
-    }
-  }else{
-    new_data$Ypred <- new_data$Ypred +
-      (variable_RE*new_data["predRE1"])
-  }
+  #if(is.vector(variable_RE)==F) {
+  #  for (m in 1:(ncol(variable_RE))) {
+  #    new_data$Ypred <- new_data$Ypred +
+  #      (variable_RE[,m]*new_data[paste0("predRE",m)])
+  #  }
+  #}else{
+  #  new_data$Ypred <- new_data$Ypred +
+  #    (variable_RE*new_data["predRE1"])
+  #}
 
   ################################################################################################################
 
@@ -215,19 +251,35 @@ WCIEestimation <- function(mexpo,var.time, timerange, step,
 
   if (weightbasis=="NS") {
 
-    # Créer un vecteur de probabilités (par exemple 5 quantiles => 0.2, 0.4, 0.6, 0.8, 1)
-    probs <- seq(0, 1, length.out = knots+1)
-    probs <- probs[-c(1, length(probs))]
-
-    # Calculer les quantiles automatiquement
-    quantiles <- quantile(data_expo_pred[var.time], probs = probs, na.rm = TRUE)
-
     b5  <- quantile(data_expo_pred[var.time],probs = c(0.05),na.rm=T)
     b95 <- quantile(data_expo_pred[var.time],probs = c(0.95),na.rm=T)
 
+
+    if (is.null(knots)==F) {
+      # Créer un vecteur de probabilités (par exemple 5 quantiles => 0.2, 0.4, 0.6, 0.8, 1)
+      probs <- seq(0, 1, length.out = knots+2)
+      probs <- probs[-c(1, length(probs))]
+
+
+      # Calculer les quantiles automatiquement
+      quantiles <- quantile(data_expo_pred[var.time], probs = probs, na.rm = TRUE)
+    }
+
+
+    if (is.null(knots.vector)==F) {
+      # si quantile choisis arbitrairement
+      quantiles<-c(knots.vector)
+
+    }
+
     ## splines recompile
-    B2K <- as.matrix(ns(unlist(data_expo_pred[var.time]),knots = quantiles, Boundary.knots = c(b5, b95), intercept = T))
+    B2K <- as.matrix(ns(unlist(data_expo_pred[var.time]),knots = quantiles,
+                        Boundary.knots = c(b5, b95),
+                        intercept = F))
+
+
     data_expo_pred <-cbind(data_expo_pred,B2K)
+
 
 
     ## faire la prédiction * les nouveaux splines (Xi(Tu)*Bk(Tu))
@@ -262,7 +314,7 @@ WCIEestimation <- function(mexpo,var.time, timerange, step,
 
     # remplacer les expo par les variables d'exposition dans la formule
     new_expo<-c(NULL)
-    new_expo <- paste(paste0("WCIE", seq_len(ncol(B2K))), collapse = "+") ## donne "ns1+ns2+ns3+ns4"
+    new_expo <- paste(paste0("WCIE", seq_len(ncol(B2K))), collapse = "+") ## donne "ns1+ns2+ns3+nsi"
 
     formdroite <- as.character(model[3]) ## la partie à droite du tilde
     formdroitebis <- gsub("\\bWCIE\\b", paste("(", new_expo, ")"), formdroite) # remplace "expo", par "(ns1+ns2+ns3+ns4)"
@@ -270,7 +322,6 @@ WCIEestimation <- function(mexpo,var.time, timerange, step,
     new_formula <- as.formula(paste(as.character(model[2]),"~",formdroitebis))
 
     model_outcome <- glm(new_formula,family = binomial,data = data.outcome)
-
 
     # récupérer quelques statistiques pour le summary :
 
@@ -281,19 +332,19 @@ WCIEestimation <- function(mexpo,var.time, timerange, step,
     # call
     glm_call <- deparse(model_outcome$call)
     real_formula <- deparse(new_formula)
-    glm_call_updated <- gsub("new_formula", real_formula, glm_call)
+    glm_call_updated <- (gsub("new_formula", real_formula, glm_call))
 
   }
   if (reg.type=="cox"){
 
   }
-  return(list(model=model_outcome,data_expo=new_data[,1:6],
-              mexpo=mexpo, data_outcome=data_outcome,
+  return(list(model=model_outcome,data_expo=new_data, #à changer pour le dataexpo et mettre les colonnes qu'on veut
+              mexpo=mexpo, data_outcome=data.outcome,
               call=glm_call_updated,splines.quantiles=quantiles,
               boundary.quantiles=c(b5,b95),
               AIC = AIC, loglike=loglike
-              )
-         )
+    )
+  )
 }
 
 

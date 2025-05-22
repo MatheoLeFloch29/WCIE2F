@@ -7,10 +7,10 @@
 WCIE2F(
   mexpo,
   var.time,
-  timerange,
-  step = 1,
+  times,
   weightbasis = "NS",
-  knots = 3,
+  knots = NULL,
+  knots.vector = NULL,
   data,
   reg.type = "RL",
   model,
@@ -27,17 +27,14 @@ It is essential to include \code{returnData = TRUE} in the function call to ensu
 \item{var.time}{character indicating the name of the time variable
 in the model \code{mexpo}.}
 
-\item{timerange}{Numeric vector of length 2
-indicating the desired time window for exposure (min, max).}
-
-\item{step}{Step between two consecutive time points in the time window indicating in \code{timerange}.}
-
 \item{weightbasis}{Type of temporal weighting function used to estimate the Weighted Cumulative Indirect Effects (WCIE).
 This specifies the functional form used to model the influence of past exposures over time.
 Currently, the following options are available: \code{"NS"} for natural splines (implemented),
 \code{"BS"} for B-splines (to be developed), and \code{"PS"} for P-splines (to be developed).}
 
-\item{knots}{Number of internal knots for the splines (used only for splines temporal weighting function).}
+\item{knots}{number of internal knots}
+
+\item{knots.vector}{Vector of internal knots for the splines (used only for splines temporal weighting function).}
 
 \item{data}{A data frame containing the variables specified in the outcome model
 \code{model} including the outcome variable. This dataset will be used to estimate the
@@ -53,6 +50,11 @@ For example, \code{Y ~ WCIE + age + sex} or \code{Y ~ WCIE:sex + age} are valid 
 
 \item{n_boot}{Number of bootstrap replicates to perform (default = 500).
 Bootstrapping is used to approximate the estimation uncertainty and compute the variance of the estimations.}
+
+\item{timerange}{Numeric vector of length 2
+indicating the desired time window for exposure (min, max).}
+
+\item{step}{Step between two consecutive time points in the time window indicating in \code{timerange}.}
 }
 \value{
 A list containing:
@@ -62,14 +64,15 @@ standard error (Se), confidence intervals (con.low, conf.high), z-statistic,
 and p-values.}
 \item{data.expo}{Intermediate data set with individual predictions.}
 \item{data.outcome}{Data set used to fit the outcome model.}
-\item{effect.plot}{Graph representing the effects of exposure history.}
+\item{effect.plot}{Graph representing the estimate effects of exposure history.}
+\item{exposition.effect}{Table with the estimate effects of exposure history, is standard error, IC}
 \item{mexpo}{Exposure model \code{hlme} object provided at the beginning.}
 \item{reg.type}{Type of regression model used.}
 \item{mean.effect}{Mean effect of exposure history.}
 \item{sd.mean.effect}{Variance of the mean effect of exposure history over time.}
 \item{nboot}{Number of bootstrap replicates.}
 \item{call}{The matched call for the outcome model.}
-\item{knots}{Number of internal knots for splines (used only if \code{weightbasis = "NS"}).}
+\item{knots.quantile}{Number of internal knots for splines (used only if \code{weightbasis = "NS"}).}
 \item{V}{Variance-covariance matrix (intra + inter) of the estimators.}
 \item{var.time}{Name of the time variable used in the model.}
 \item{AIC}{Mean AIC of the outcome model across the \code{nboot} bootstrap replicates.}

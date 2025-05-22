@@ -118,7 +118,8 @@
 #' This specifies the functional form used to model the influence of past exposures over time.
 #' Currently, the following options are available: \code{"NS"} for natural splines (implemented),
 #' \code{"BS"} for B-splines (to be developed), and \code{"PS"} for P-splines (to be developed).
-#' @param knots Number of internal knots for the splines (used only for splines temporal weighting function).
+#' @param knots number of internal knots
+#' @param knots.vector Vector of internal knots for the splines (used only for splines temporal weighting function).
 #' @param data A data frame containing the variables specified in the outcome model
 #' \code{model} including the outcome variable. This dataset will be used to estimate the
 #' outcome model, and the WCIE variables calculated previously will be added to this
@@ -139,14 +140,15 @@
 #' and p-values.}
 #' \item{data.expo}{Intermediate data set with individual predictions.}
 #' \item{data.outcome}{Data set used to fit the outcome model.}
-#' \item{effect.plot}{Graph representing the effects of exposure history.}
+#' \item{effect.plot}{Graph representing the estimate effects of exposure history.}
+#' \item{exposition.effect}{Table with the estimate effects of exposure history, is standard error, IC}
 #' \item{mexpo}{Exposure model \code{hlme} object provided at the beginning.}
 #' \item{reg.type}{Type of regression model used.}
 #' \item{mean.effect}{Mean effect of exposure history.}
 #' \item{sd.mean.effect}{Variance of the mean effect of exposure history over time.}
 #' \item{nboot}{Number of bootstrap replicates.}
 #' \item{call}{The matched call for the outcome model.}
-#' \item{knots}{Number of internal knots for splines (used only if \code{weightbasis = "NS"}).}
+#' \item{knots.quantile}{Number of internal knots for splines (used only if \code{weightbasis = "NS"}).}
 #' \item{V}{Variance-covariance matrix (intra + inter) of the estimators.}
 #' \item{var.time}{Name of the time variable used in the model.}
 #' \item{AIC}{Mean AIC of the outcome model across the \code{nboot} bootstrap replicates.}
@@ -181,7 +183,7 @@
 #'
 #'
 #' @export
-WCIE2F <- function(mexpo,var.time, timerange, step=1, weightbasis="NS", knots=3,
+WCIE2F <- function(mexpo,var.time, times, weightbasis="NS", knots=NULL,knots.vector=NULL,
                    data, reg.type="RL", model,n_boot=500){
 
   ptm <- proc.time()
@@ -190,8 +192,10 @@ WCIE2F <- function(mexpo,var.time, timerange, step=1, weightbasis="NS", knots=3,
   if(!inherits(mexpo,"hlme")) stop("The argument mexpo must be a hlme object")
   if (is.null(data)==T) stop("the argument outcome_data is missing")
   if (is.null(model)==T) stop("the argument outcomeformula is missing")
-  if (timerange[1]<min(mexpo$data[var.time])) stop("the argument timerange must be equal or higher then the minimum time value")
-  if (timerange[2]>max(mexpo$data[var.time])) stop("the argument timerange must be equal or less then the maximum time value")
+  #if (timerange[1]<min(mexpo$data[var.time])) stop("the argument timerange must be equal or higher then the minimum time value")
+  #if (timerange[2]>max(mexpo$data[var.time])) stop("the argument timerange must be equal or less then the maximum time value")
+  if(is.null((knots|knots.vector))==T) stop("You must have to specify knots or knots.vector")
+
 
   # Extraire la moyenne et la matrice de variance-covariance des paramètres estimés du modèle d'exposition
   mu <- as.matrix(estimates(mexpo))
@@ -214,7 +218,7 @@ WCIE2F <- function(mexpo,var.time, timerange, step=1, weightbasis="NS", knots=3,
 
   if(idiag0==0 & NVC>0){
 
-    for (i in 1:dim(boot_params)[1]) {
+    for (i in 1:nrow(boot_params)) {
       # Extraire les paramètres Cholesky de l'échantillon i
       Cholesky <- boot_params[i, (NPROB+NEF+1):(NPROB+NEF+NVC)]
 
@@ -245,11 +249,11 @@ WCIE2F <- function(mexpo,var.time, timerange, step=1, weightbasis="NS", knots=3,
   # save all the bootstrap dans boot_result
 
   boot_results <- lapply(1:n_boot, function(i) {
-                          doOneBootWCIE(i = i,boot_params=boot_params,
-                                    timerange = timerange,
-                                    step = step,var.time = var.time,weightbasis = weightbasis,knots = knots,
-                                    data = data, reg.type = reg.type, model = model)}
-                         )
+    doOneBootWCIE(i = i,boot_params=boot_params,
+                  times = times,mexpo=mexpo,knots.vector=knots.vector,
+                  var.time = var.time,weightbasis = weightbasis,knots = knots,
+                  data = data, reg.type = reg.type, model = model)}
+  )
 
   # remplacer la boucle for par un replicate qui utilise la fonction doOneBoot et qui sort :
   # -une liste des paramètres estimés pour chaque bootstrap
@@ -314,8 +318,9 @@ WCIE2F <- function(mexpo,var.time, timerange, step=1, weightbasis="NS", knots=3,
   # le call du modèle d'exposition
   # utiliser pour le calcul des effets de l'exposition passée dans le temps
 
-  WCIE <- WCIEestimation(mexpo = mexpo,var.time = var.time, timerange = timerange, step = step,
-           weightbasis = weightbasis, knots = knots, data = data, reg.type = reg.type, model = model)
+  WCIE <- WCIEestimation(mexpo = mexpo,var.time = var.time, times = times,
+                         weightbasis = weightbasis, knots = knots,knots.vector=knots.vector,
+                         data = data, reg.type = reg.type, model = model)
 
   new_data <- WCIE$data_expo #data exposition
   data_outcome <- WCIE$data_outcome #data outcome
@@ -342,17 +347,21 @@ WCIE2F <- function(mexpo,var.time, timerange, step=1, weightbasis="NS", knots=3,
     ##################################################################
 
     # new matrice spline to compile the effect
-    data_splines <- data.frame(unique(new_data[var.time]))
+    data_splines1 <- data.frame(unique(new_data[var.time]))
+
+    data_splines <- seq(from=times[1],to=times[2],by=times[3]) # sequence de mesure dans la fenêtre choisis
 
     ## splines recompile with the same parameters than put in the wcieestimation function
-    new_splines <- as.matrix(ns(unlist(data_splines[1]),knots = WCIE$splines.quantiles, Boundary.knots = WCIE$boundary.quantiles, intercept = T))
+    new_splines <- as.matrix(ns(unlist(data_splines),knots = WCIE$splines.quantiles,
+                                Boundary.knots = WCIE$boundary.quantiles,
+                                intercept = F))
     # renommer WCIE1:WCIEk
     colnames(new_splines) <- paste0("WCIE", 1:ncol(new_splines))
 
     # faire une première boucle sur les WCIE sans intéraction
 
     # Calculer l'effet total avec une boucle
-    effect <- data.frame(time=data_splines[var.time],eff_expo=0)
+    effect <- data.frame(time=data_splines,eff_expo=0)
     effect <- effect %>% arrange(effect[1])
     # si il y a pas d'intéraction - faire juste une boucle sur les WCIE
     for (s in 1:dim(new_splines)[2]){
@@ -399,7 +408,7 @@ WCIE2F <- function(mexpo,var.time, timerange, step=1, weightbasis="NS", knots=3,
       doOneBoot_effectInt<-function(i){
 
         # Faire une boucle sur l'ensemble des variables WCIE sans interaction
-        effect <- data.frame(time=data_splines[var.time],eff_expo=0)
+        effect <- data.frame(time=data_splines,eff_expo=0)
         effect <- effect %>% arrange(effect[1])
         # si il y a pas d'intéraction - faire juste une boucle sur les WCIE
         for (s in 1:dim(new_splines)[2]){
@@ -420,7 +429,7 @@ WCIE2F <- function(mexpo,var.time, timerange, step=1, weightbasis="NS", knots=3,
             new_data_cov_int2 <- data_cov_int[1,1]
             for (g in 1:length(repaire)) {
               #rajouter valeur
-              effect$eff_expo<- effect$eff_expo + boot_est[i,repaire[g]] * new_splines[,p] * new_data_cov_int2[q]
+              effect$eff_expo <- effect$eff_expo + boot_est[i,repaire[g]] * new_splines[,p] * new_data_cov_int2[q]
               p <- ifelse(p == (knots + 1), 1, (p + 1))
             }
           }else{
@@ -499,25 +508,25 @@ WCIE2F <- function(mexpo,var.time, timerange, step=1, weightbasis="NS", knots=3,
 
 
       # faire le calcul de V(w(t))
-      mean_effect <- as.data.frame(mean_effect)
-      mean_effect$var_eff <- 0
-      for(z in 1:nrow(mean_effect)){
-        mean_effect$var_eff[z] <- t(new_matheo[z,]) %*% eff_varCov_tot %*% new_matheo[z,]
+      effect <- as.data.frame(effect)
+      effect$var_eff <- 0
+      for(z in 1:nrow(effect)){
+        effect$var_eff[z] <- t(new_matheo[z,]) %*% eff_varCov_tot %*% new_matheo[z,]
       }
+
 
       ######################## à verifier mais semble ok ##################################
       # calculer l'effet moyen de 0 à -T
       # calculer l'effet moyen wbarre = 1/T+1 somme(w(u))
-      real_mean_effect <- 1/(nrow(mean_effect)+1)*sum(mean_effect[2])
+      real_mean_effect <- 1/(nrow(effect)+1)*sum(effect[2])
 
       # sans interaction
       # calculer sa variance v(wbarre=(1/T+1 somme(B(t)'))*v(teta)*(1/T+1 somme(B(t)))
-      col_means_splines <- colSums(new_matheo) / (nrow(mean_effect)+1) #1/T+1(B(t))
+      col_means_splines <- colSums(new_matheo) / (nrow(effect)+1) #1/T+1(B(t))
       real_mean_var_effect <- t(col_means_splines) %*% eff_varCov_tot %*% col_means_splines #v(wbarre)
       #####################################################################################
 
     }
-
 
 
 
@@ -539,7 +548,7 @@ WCIE2F <- function(mexpo,var.time, timerange, step=1, weightbasis="NS", knots=3,
     # sans interaction
     # calculer sa variance v(wbarre=(1/T somme(B(t)'))*v(teta)*(1/T somme(B(t))) confirmer qu'il n'y a pas de +1 ?
     means_splines <- colSums(new_splines) / (nrow(effect)) #1/T+1(B(t))
-    mean_variable_effect <- t(means_splines) %*% eff_varCov_tot %*% means_splines #v(wbarre)
+    real_mean_var_effect <- t(means_splines) %*% eff_varCov_tot %*% means_splines #v(wbarre)
     mean_variable_effect <- sqrt(real_mean_var_effect)
 
     # avec interaction
@@ -574,10 +583,12 @@ WCIE2F <- function(mexpo,var.time, timerange, step=1, weightbasis="NS", knots=3,
   cost<-proc.time()-ptm
 
   result<- list(estimate=parameters_var,
-                data.expo=WCIE[[2]],data.outcome=data_outcome,effect.plot=graph_effect,
+                data.expo=WCIE[[2]],data.outcome=data_outcome,effectplot=graph_effect,
+                expositioneffect=effect,
                 mexpo=WCIE[[3]],reg.type=reg.type,mean.effect=mean_effect,
                 sd.mean.effect=mean_variable_effect,nboot = n_boot,
-                call=WCIE[[5]],knots=knots,V=var_tot,var.time=var.time,AIC=mean_AIC
+                #call=eval(parse(text = WCIE[[5]]))$call, #séparé les différentes parties du call
+                knots.quantile=WCIE$splines.quantiles,V=var_tot,var.time=var.time,AIC=mean_AIC
                 ,loglike=mean_loglike,n=n,nb.subj.del=nb_subject_delete,
                 time.processing=cost)
 

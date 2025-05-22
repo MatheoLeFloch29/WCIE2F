@@ -7,10 +7,10 @@
 WCIEestimation(
   mexpo,
   var.time,
-  timerange,
-  step,
+  times,
   weightbasis,
   knots,
+  knots.vector,
   data,
   reg.type,
   model
@@ -26,17 +26,14 @@ It is essential to include \code{returnData = TRUE} in the function call to ensu
 \item{var.time}{character indicating the name of the time variable
 in the model \code{mexpo}.}
 
-\item{timerange}{Numeric vector of length 2
-indicating the desired time window for exposure (min, max).}
-
-\item{step}{Step between two consecutive time points in the time window indicating in \code{timerange}.}
-
 \item{weightbasis}{Type of temporal weighting function used to estimate the Weighted Cumulative Indirect Effects (WCIE).
 This specifies the functional form used to model the influence of past exposures over time.
 Currently, the following options are available: \code{"NS"} for natural splines (implemented),
 \code{"BS"} for B-splines (to be developed), and \code{"PS"} for P-splines (to be developed).}
 
-\item{knots}{Number of internal knots for the splines (used only for splines temporal weighting function).}
+\item{knots}{number of internal knots}
+
+\item{knots.vector}{Vector of internal knots for the splines (used only for splines temporal weighting function).}
 
 \item{data}{A data frame containing the variables specified in the outcome model
 \code{model} including the outcome variable. This dataset will be used to estimate the
@@ -49,6 +46,11 @@ dataset prior to model fitting.}
 the left of ~ and the covariates are separated by + on the right of ~. To include the effect of past exposure,
 you must explicitly add \code{WCIE} (or interaction terms such as \code{WCIE:sex}) to the formula.
 For example, \code{Y ~ WCIE + age + sex} or \code{Y ~ WCIE:sex + age} are valid formulas.}
+
+\item{timerange}{Numeric vector of length 2
+indicating the desired time window for exposure (min, max).}
+
+\item{step}{Step between two consecutive time points in the time window indicating in \code{timerange}.}
 }
 \value{
 A list containing:
@@ -65,11 +67,11 @@ A list containing:
   \item{loglike}{log-likelihood of the outcome model.}
 }
 \description{
-Cette fonction permet d’estimer l’effet de l'histoire d'une exposition sur un
-outcome de santé (tel qu’un événement binaire, un temps de survie, ou bien un événement répété),
-en utilisant une approche basée sur le WCIE (Weight Cumulative Index of Exposure).
-La fonction s’adresse aux données longitudinales où l’exposition varie dans le temps,
-et où l'on souhaite modéliser l’effet de cette exposition sur un outcome.
+This function estimates the effect of an exposure history on a health outcome
+(such as a binary event, survival time, or repeated event),
+using the WCIE (Weighted Cumulative Index of Exposure) approach.
+It is designed for longitudinal data where exposure varies over time,
+and where the goal is to model the effect of this time-varying exposure on an outcome.
 
 
 A. Estimation follows the following steps:
