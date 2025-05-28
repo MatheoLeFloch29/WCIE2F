@@ -129,12 +129,9 @@ simulateWCIE <- function(object ,nsim=1, seed=NULL, times,internal.step, tname, 
                     by=c(id,tname))
   visit_data <- visit_data[order(visit_data[,id], visit_data[,tname]), ] #reordonner par id,time
 
-  # garder la vraie valeur pour appliquer le poids
-  visit_data2 <- visit_data
-  visit_data2$ytrue<- visit_data2[,y]
+  #appliquer à l'erreur de mesure et
+  visit_data[y] <- visit_data[y] + model_sigma_error*rnorm(nrow(visit_data),0,1)
 
-  #appliquer un l'erreur de mesure et
-  visit_data[,"yobs"] <- visit_data[y] + model_sigma_error*rnorm(nrow(visit_data),0,1)
   # recup covariable utilisé dans le modèle
   covar<-object$Xnames2[!object$Xnames2 %in% tname][-1]
 
@@ -149,7 +146,7 @@ simulateWCIE <- function(object ,nsim=1, seed=NULL, times,internal.step, tname, 
   #######################################################
 
   # pour chaque individu
-  data_outcome <- data.frame(id=unique(visit_data2[id]))
+  data_outcome <- data.frame(id=unique(exposition_data[id]))
 
       # générer les splines (prendre en compte les y sur le pas de 0.01 dans Sim_D)
       if (weightbasis=="NS") {
