@@ -19,15 +19,16 @@
 #' @param boot_params A matrix or data frame containing all bootstrap parameter vectors.
 #' @param var.time character indicating the name of the time variable
 #' in the model \code{mexpo}.
-#' @param timerange Numeric vector of length 2
-#' indicating the desired time window for exposure (min, max).
-#' @param step Step between two consecutive time points in the time window indicating in \code{timerange}.
+#' @param times Numeric vector of length 4
+#' indicating the desired time window for exposure (min, max, step, alea).
 #' @param weightbasis Type of temporal weighting function used to estimate the Weighted Cumulative Indirect Effects (WCIE).
 #' This specifies the functional form used to model the influence of past exposures over time.
 #' Currently, the following options are available: \code{"NS"} for natural splines (implemented),
 #' \code{"BS"} for B-splines (to be developed), and \code{"PS"} for P-splines (to be developed).
 #' @param knots number of internal knots
-#' @param knots.vector Vector of internal knots for the splines (used only for splines temporal weighting function).
+#' @param knots.vector list of 2 vector : one for the internal knots for the splines (used only
+#' for splines temporal weighting function) and a second for the boundary knots.
+#' (ex:knots.vector=list(knots=c(-15,-5),boundary.knots=c(-20,0)))
 #' @param data A data frame containing the variables specified in the outcome model
 #' \code{model} including the outcome variable. This dataset will be used to estimate the
 #' outcome model, and the WCIE variables calculated previously will be added to this

@@ -111,15 +111,16 @@
 #' It is essential to include \code{returnData = TRUE} in the function call to ensure that the internal data can be accessed.
 #' @param var.time character indicating the name of the time variable
 #' in the model \code{mexpo}.
-#' @param timerange Numeric vector of length 2
-#' indicating the desired time window for exposure (min, max).
-#' @param step Step between two consecutive time points in the time window indicating in \code{timerange}.
+#' @param times Numeric vector of length 4
+#' indicating the desired time window for exposure (min, max, step, alea).
 #' @param weightbasis Type of temporal weighting function used to estimate the Weighted Cumulative Indirect Effects (WCIE).
 #' This specifies the functional form used to model the influence of past exposures over time.
 #' Currently, the following options are available: \code{"NS"} for natural splines (implemented),
 #' \code{"BS"} for B-splines (to be developed), and \code{"PS"} for P-splines (to be developed).
 #' @param knots number of internal knots
-#' @param knots.vector Vector of internal knots for the splines (used only for splines temporal weighting function).
+#' @param knots.vector list of 2 vector : one for the internal knots for the splines (used only
+#' for splines temporal weighting function) and a second for the boundary knots.
+#' (ex:knots.vector=list(knots=c(-15,-5),boundary.knots=c(-20,0)))
 #' @param data A data frame containing the variables specified in the outcome model
 #' \code{model} including the outcome variable. This dataset will be used to estimate the
 #' outcome model, and the WCIE variables calculated previously will be added to this
@@ -163,7 +164,6 @@
 #' @importFrom stats glm quantile aggregate pnorm qnorm as.formula binomial knots model.matrix step vcov formula logLik
 #' @importFrom lcmm estimates VarCov predictY
 #' @importFrom utils data
-#' @import MASS
 #' @import ggplot2
 #'
 #' @author un super beau gosse
@@ -194,7 +194,7 @@ WCIE2F <- function(mexpo,var.time, times, weightbasis="NS", knots=NULL,knots.vec
   if (is.null(model)==T) stop("the argument outcomeformula is missing")
   #if (timerange[1]<min(mexpo$data[var.time])) stop("the argument timerange must be equal or higher then the minimum time value")
   #if (timerange[2]>max(mexpo$data[var.time])) stop("the argument timerange must be equal or less then the maximum time value")
-  if(is.null((knots|knots.vector))==T) stop("You must have to specify knots or knots.vector")
+  if(is.null(knots)==T&is.null(knots.vector)==T) stop("You must have to specify knots or knots.vector")
 
 
   # Extraire la moyenne et la matrice de variance-covariance des paramètres estimés du modèle d'exposition
@@ -204,15 +204,13 @@ WCIE2F <- function(mexpo,var.time, times, weightbasis="NS", knots=NULL,knots.vec
   # Pour passer de la cholesky à la variance :
 
   # Générer les nouvelles valeurs des paramètres bootstrap
-  boot_params <- mvrnorm(n = n_boot, mu = mu, Sigma = Sigma)
-
+  boot_params <- MASS::mvrnorm(n = n_boot, mu = mu, Sigma = Sigma)
 
   NPROB = mexpo$N[1]
   NEF = mexpo$N[2]
   NVC = mexpo$N[3]
   idiag0 = mexpo$idiag
   nea0 = sum(mexpo$idea0)
-
 
   ######## passer de cholesky à varcov ##################
 
@@ -354,7 +352,7 @@ WCIE2F <- function(mexpo,var.time, times, weightbasis="NS", knots=NULL,knots.vec
     ## splines recompile with the same parameters than put in the wcieestimation function
     new_splines <- as.matrix(ns(unlist(data_splines),knots = WCIE$splines.quantiles,
                                 Boundary.knots = WCIE$boundary.quantiles,
-                                intercept = F))
+                                intercept = T))
     # renommer WCIE1:WCIEk
     colnames(new_splines) <- paste0("WCIE", 1:ncol(new_splines))
 
@@ -587,7 +585,7 @@ WCIE2F <- function(mexpo,var.time, times, weightbasis="NS", knots=NULL,knots.vec
                 expositioneffect=effect,
                 mexpo=WCIE[[3]],reg.type=reg.type,mean.effect=mean_effect,
                 sd.mean.effect=mean_variable_effect,nboot = n_boot,
-                #call=eval(parse(text = WCIE[[5]]))$call, #séparé les différentes parties du call
+                call=WCIE$call, #séparé les différentes parties du call
                 knots.quantile=WCIE$splines.quantiles,V=var_tot,var.time=var.time,AIC=mean_AIC
                 ,loglike=mean_loglike,n=n,nb.subj.del=nb_subject_delete,
                 time.processing=cost)

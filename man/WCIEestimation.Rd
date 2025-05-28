@@ -26,6 +26,9 @@ It is essential to include \code{returnData = TRUE} in the function call to ensu
 \item{var.time}{character indicating the name of the time variable
 in the model \code{mexpo}.}
 
+\item{times}{Numeric vector of length 4
+indicating the desired time window for exposure (min, max, step, alea).}
+
 \item{weightbasis}{Type of temporal weighting function used to estimate the Weighted Cumulative Indirect Effects (WCIE).
 This specifies the functional form used to model the influence of past exposures over time.
 Currently, the following options are available: \code{"NS"} for natural splines (implemented),
@@ -33,7 +36,9 @@ Currently, the following options are available: \code{"NS"} for natural splines 
 
 \item{knots}{number of internal knots}
 
-\item{knots.vector}{Vector of internal knots for the splines (used only for splines temporal weighting function).}
+\item{knots.vector}{list of 2 vector : one for the internal knots for the splines (used only
+for splines temporal weighting function) and a second for the boundary knots.
+(ex:knots.vector=list(knots=c(-15,-5),boundary.knots=c(-20,0)))}
 
 \item{data}{A data frame containing the variables specified in the outcome model
 \code{model} including the outcome variable. This dataset will be used to estimate the
@@ -46,11 +51,6 @@ dataset prior to model fitting.}
 the left of ~ and the covariates are separated by + on the right of ~. To include the effect of past exposure,
 you must explicitly add \code{WCIE} (or interaction terms such as \code{WCIE:sex}) to the formula.
 For example, \code{Y ~ WCIE + age + sex} or \code{Y ~ WCIE:sex + age} are valid formulas.}
-
-\item{timerange}{Numeric vector of length 2
-indicating the desired time window for exposure (min, max).}
-
-\item{step}{Step between two consecutive time points in the time window indicating in \code{timerange}.}
 }
 \value{
 A list containing:

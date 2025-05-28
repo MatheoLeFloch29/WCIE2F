@@ -72,15 +72,16 @@
 #' It is essential to include \code{returnData = TRUE} in the function call to ensure that the internal data can be accessed.
 #' @param var.time character indicating the name of the time variable
 #' in the model \code{mexpo}.
-#' @param timerange Numeric vector of length 2
-#' indicating the desired time window for exposure (min, max).
-#' @param step Step between two consecutive time points in the time window indicating in \code{timerange}.
+#' @param times Numeric vector of length 4
+#' indicating the desired time window for exposure (min, max, step, alea).
 #' @param weightbasis Type of temporal weighting function used to estimate the Weighted Cumulative Indirect Effects (WCIE).
 #' This specifies the functional form used to model the influence of past exposures over time.
 #' Currently, the following options are available: \code{"NS"} for natural splines (implemented),
 #' \code{"BS"} for B-splines (to be developed), and \code{"PS"} for P-splines (to be developed).
 #' @param knots number of internal knots
-#' @param knots.vector Vector of internal knots for the splines (used only for splines temporal weighting function).
+#' @param knots.vector list of 2 vector : one for the internal knots for the splines (used only
+#' for splines temporal weighting function) and a second for the boundary knots.
+#' (ex:knots.vector=list(knots=c(-15,-5),boundary.knots=c(-20,0)))
 #' @param data A data frame containing the variables specified in the outcome model
 #' \code{model} including the outcome variable. This dataset will be used to estimate the
 #' outcome model, and the WCIE variables calculated previously will be added to this
@@ -119,7 +120,7 @@
 #' @name WCIEestimation
 #' @export
 WCIEestimation <- function(mexpo,var.time, times,
-                           weightbasis, knots,knots.vector, data, reg.type, model){
+                           weightbasis, knots, knots.vector, data, reg.type, model){
 
   #####################################################
   ##### 1) prediction individuelle de l'exposition ####
@@ -176,9 +177,6 @@ WCIEestimation <- function(mexpo,var.time, times,
   # obligation de demander de remplir directementla fonction dans la formule du modèle hlmr sinon impossible de connaitre ce que la personne à
   # utiliser comme fonction
 
-  # recompile les effets aléatoires pour la nouvelle fenêtre de données (pour n'importe quelle fonction du temps ou pas)
-
-  variable_RE <- model.matrix(as.formula(paste("~", mexpo$call[[3]][2])), data = new_data)
 
   # recup covariable utilisé dans le modèle
   covar<-mexpo$Xnames2[!mexpo$Xnames2 %in% var.time][-1]
@@ -188,19 +186,24 @@ WCIEestimation <- function(mexpo,var.time, times,
 
   ######## predexpo ###############
 
-  head(predictRE(mexpo,mexpo$data))
+# si pas d'effets aléatoires alors faire ça :
 
-  head(mexpo$predRE)
+# si forme du temps pour les effets aléatoires uniquement alors faire ça
+# recompile les effets aléatoires pour la nouvelle fenêtre de données (pour n'importe quelle fonction du temps ou pas)
+  variable_RE <- model.matrix(as.formula(paste("~", mexpo$call[[3]][2])), data = new_data[var.time])
 
+# si même forme du temps pour les effets aléatoires alors :
 # faire une boucle sur les prédictions car on peut que faire une seul à la fois
-
   new_data$Ypred <- NA
   for (n in id_seq) {
     #récupérer les random effect de l'individu n
     truc <- mexpo$predRE[mexpo$predRE[[mexpo$call[[4]]]]==n,]
+    data_pred<-new_data[new_data[[mexpo$call[[4]]]]==n,]
+
     # faire la prediction de cette individu
-    new_pred<-predictY(mexpo,newdata = new_data[new_data[[mexpo$call[[4]]]]==n,],
-                       predRE = truc,var.time = var.time)
+    new_pred<-predictY(mexpo,newdata = data_pred,
+                       predRE = truc,var.time = var.time
+                       )
 
     # merge ces prédictions au new_data
     new_data$Ypred[new_data[[mexpo$call[[4]]]]==n] <- new_pred$pred
@@ -251,8 +254,7 @@ WCIEestimation <- function(mexpo,var.time, times,
 
   if (weightbasis=="NS") {
 
-    b5  <- quantile(data_expo_pred[var.time],probs = c(0.05),na.rm=T)
-    b95 <- quantile(data_expo_pred[var.time],probs = c(0.95),na.rm=T)
+
 
 
     if (is.null(knots)==F) {
@@ -260,7 +262,8 @@ WCIEestimation <- function(mexpo,var.time, times,
       probs <- seq(0, 1, length.out = knots+2)
       probs <- probs[-c(1, length(probs))]
 
-
+      b5  <- quantile(data_expo_pred[var.time],probs = c(0.05),na.rm=T)
+      b95 <- quantile(data_expo_pred[var.time],probs = c(0.95),na.rm=T)
       # Calculer les quantiles automatiquement
       quantiles <- quantile(data_expo_pred[var.time], probs = probs, na.rm = TRUE)
     }
@@ -268,19 +271,19 @@ WCIEestimation <- function(mexpo,var.time, times,
 
     if (is.null(knots.vector)==F) {
       # si quantile choisis arbitrairement
-      quantiles<-c(knots.vector)
+      quantiles<-c(knots.vector$knots)
+
+      b5  <- knots.vector$boundary.knots[1]
+      b95 <- knots.vector$boundary.knots[2]
 
     }
 
     ## splines recompile
     B2K <- as.matrix(ns(unlist(data_expo_pred[var.time]),knots = quantiles,
                         Boundary.knots = c(b5, b95),
-                        intercept = F))
-
+                        intercept = T))
 
     data_expo_pred <-cbind(data_expo_pred,B2K)
-
-
 
     ## faire la prédiction * les nouveaux splines (Xi(Tu)*Bk(Tu))
     for (r in 1:length(colnames(B2K))) {
@@ -336,6 +339,9 @@ WCIEestimation <- function(mexpo,var.time, times,
 
   }
   if (reg.type=="cox"){
+
+
+
 
   }
   return(list(model=model_outcome,data_expo=new_data, #à changer pour le dataexpo et mettre les colonnes qu'on veut

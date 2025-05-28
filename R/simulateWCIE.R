@@ -49,7 +49,7 @@
 #'
 #' @import lcmm
 #' @import ggplot2
-#' @importFrom stats rnorm rbinom runif plogis median
+#' @importFrom stats rnorm rbinom runif plogis median simulate
 #'
 #'
 #'
@@ -60,7 +60,7 @@
 simulateWCIE <- function(object ,nsim=1, seed=NULL, times,internal.step, tname, n, Xbin=NULL, Xcont=NULL
                           ,weightbasis,reg.type,knots=NULL, knots.vector=NULL, coef.wcie, Xoutcome){
 
-  if(is.null((knots|knots.vector))==T) stop("You must have to specify knots or knots.vector")
+  if(!is.null(knots)==T & !is.null(knots.vector)==T) stop("You must have to specify knots or knots.vector")
 
 
   # parameters
@@ -90,9 +90,11 @@ simulateWCIE <- function(object ,nsim=1, seed=NULL, times,internal.step, tname, 
   )
 
 
-  # Ajouter Xbin si non nul
+
+  # Ajouter seed si non nul
   if (!is.null(seed)) {
     args$seed <- seed
+    set.seed(seed)
   }
   # Ajouter Xbin si non nul
   if (!is.null(Xbin)) {
@@ -127,9 +129,12 @@ simulateWCIE <- function(object ,nsim=1, seed=NULL, times,internal.step, tname, 
                     by=c(id,tname))
   visit_data <- visit_data[order(visit_data[,id], visit_data[,tname]), ] #reordonner par id,time
 
-  # ajouter l'erreur de mesure sigma : à vérifier
-  visit_data[y] <- visit_data[y] + model_sigma_error*rnorm(nrow(visit_data),0,1)
+  # garder la vraie valeur pour appliquer le poids
+  visit_data2 <- visit_data
+  visit_data2$ytrue<- visit_data2[,y]
 
+  #appliquer un l'erreur de mesure et
+  visit_data[,"yobs"] <- visit_data[y] + model_sigma_error*rnorm(nrow(visit_data),0,1)
   # recup covariable utilisé dans le modèle
   covar<-object$Xnames2[!object$Xnames2 %in% tname][-1]
 
@@ -144,7 +149,7 @@ simulateWCIE <- function(object ,nsim=1, seed=NULL, times,internal.step, tname, 
   #######################################################
 
   # pour chaque individu
-  data_outcome <- data.frame(id=unique(exposition_data[id]))
+  data_outcome <- data.frame(id=unique(visit_data2[id]))
 
       # générer les splines (prendre en compte les y sur le pas de 0.01 dans Sim_D)
       if (weightbasis=="NS") {
@@ -157,25 +162,28 @@ simulateWCIE <- function(object ,nsim=1, seed=NULL, times,internal.step, tname, 
 
           # Calculer les quantiles automatiquement sur tout les temps observés
           quantiles <- quantile(exposition_data[,tname], probs = probs, na.rm = TRUE)
+          b5  <- quantile(exposition_data[,tname],probs = c(0.05),na.rm=T)
+          b95 <- quantile(exposition_data[,tname],probs = c(0.95),na.rm=T)
         }
 
-        b5  <- quantile(exposition_data[,tname],probs = c(0.05),na.rm=T)
-        b95 <- quantile(exposition_data[,tname],probs = c(0.95),na.rm=T)
+
 
         if (is.null(knots.vector)==F) {
-          quantiles<- knots.vector
+          quantiles<- knots.vector$knots
+          b5 <- knots.vector$boundary.knots[1]
+          b95 <- knots.vector$boundary.knots[2]
         }
 
         if(length(quantiles)==0){
           ## splines recompile (Bk(u)) pour un nombre de noeuds internes à 0
           Zns <- as.matrix(ns(Sim_D[,tname], #knots = quantile,
                               Boundary.knots = c(b5, b95),
-                              intercept = F))
+                              intercept = T))
         }else{
           ## splines recompile (Bk(u))
           Zns <- as.matrix(ns(Sim_D[,tname], knots = c(quantiles),
                               Boundary.knots = c(b5, b95),
-                              intercept = F))
+                              intercept = T))
         }
 
 
@@ -213,12 +221,12 @@ simulateWCIE <- function(object ,nsim=1, seed=NULL, times,internal.step, tname, 
         # ressortir les données uniquement au temps d'intérêt times[1] à times[2]
         df_to_out <- unique(df_weights[df_weights$Time %in% t,])
 
-        # somme(w(u)*Xi*pas)
-        tmpwcie <- weights*Sim_D[, y]*step_fixe #w(u)*Xi*pas
+        # somme(w(u)*Xi(true)*pas)
+        tmpwcie <- weights*Sim_D[, y]*step_fixe #w(u)*Xi(true)*pas
         sommeWCIE <- tapply(tmpwcie, Sim_D[,id], sum)  #sum() par individu
 
       }
-      data_outcome$wcie <- sommeWCIE # pour verif glm
+      #data_outcome$wcie <- sommeWCIE # pour verif glm
     if(reg.type=="logistic"){
       # Récupérer les paramètres (paramètres à donner) de
       # l'intercept et des covariables (présente dans le model d'expo)
@@ -242,7 +250,7 @@ simulateWCIE <- function(object ,nsim=1, seed=NULL, times,internal.step, tname, 
       Yobs <- rbinom(n = n, size = 1, prob = pi)
 
       data_outcome[,"y"] <-  Yobs # l'ajouter au dataoutcome
-  }
+    }
 
 
   return(list(exposition.data = exposition_data,
