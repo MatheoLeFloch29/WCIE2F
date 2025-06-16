@@ -111,8 +111,8 @@
 #' It is essential to include \code{returnData = TRUE} in the function call to ensure that the internal data can be accessed.
 #' @param var.time character indicating the name of the time variable
 #' in the model \code{mexpo}.
-#' @param times Numeric vector of length 4
-#' indicating the desired time window for exposure (min, max, step, alea).
+#' @param time.frame Numeric vector of length 3
+#' indicating the desired time window for exposure (min, max, step).
 #' @param weightbasis Type of temporal weighting function used to estimate the Weighted Cumulative Indirect Effects (WCIE).
 #' This specifies the functional form used to model the influence of past exposures over time.
 #' Currently, the following options are available: \code{"NS"} for natural splines (implemented),
@@ -149,7 +149,7 @@
 #' \item{sd.mean.effect}{Variance of the mean effect of exposure history over time.}
 #' \item{nboot}{Number of bootstrap replicates.}
 #' \item{call}{The matched call for the outcome model.}
-#' \item{knots.quantile}{Number of internal knots for splines (used only if \code{weightbasis = "NS"}).}
+#' \item{knots.quantile}{internal knots uses for splines (used only if \code{weightbasis = "NS"}).}
 #' \item{V}{Variance-covariance matrix (intra + inter) of the estimators.}
 #' \item{var.time}{Name of the time variable used in the model.}
 #' \item{AIC}{Mean AIC of the outcome model across the \code{nboot} bootstrap replicates.}
@@ -163,7 +163,6 @@
 #' @importFrom splines ns
 #' @importFrom stats glm quantile aggregate pnorm qnorm as.formula binomial knots model.matrix step vcov formula logLik
 #' @importFrom lcmm estimates VarCov predictY
-#' @importFrom utils data
 #' @import ggplot2
 #'
 #' @author un super beau gosse
@@ -183,7 +182,7 @@
 #'
 #'
 #' @export
-WCIE2F <- function(mexpo,var.time, times, weightbasis="NS", knots=NULL,knots.vector=NULL,
+WCIE2F <- function(mexpo,var.time, time.frame, weightbasis="NS", knots=NULL,knots.vector=NULL,
                    data, reg.type="RL", model,n_boot=500){
 
   ptm <- proc.time()
@@ -248,7 +247,7 @@ WCIE2F <- function(mexpo,var.time, times, weightbasis="NS", knots=NULL,knots.vec
 
   boot_results <- lapply(1:n_boot, function(i) {
     doOneBootWCIE(i = i,boot_params=boot_params,
-                  times = times,mexpo=mexpo,knots.vector=knots.vector,
+                  times = time.frame,mexpo=mexpo,knots.vector=knots.vector,
                   var.time = var.time,weightbasis = weightbasis,knots = knots,
                   data = data, reg.type = reg.type, model = model)}
   )
@@ -273,6 +272,8 @@ WCIE2F <- function(mexpo,var.time, times, weightbasis="NS", knots=NULL,knots.vec
 
   var_inter <- ((n_boot + 1)/(n_boot*(n_boot-1)))*somme_var_var #applique le (M+1)/(M(M-1))
   rownames(var_inter)<-colnames(var_intra)
+
+  #essayer avec le M-1/M pour voir
 
   #######################################################
   ########## end bootstrap ##############################
@@ -316,7 +317,7 @@ WCIE2F <- function(mexpo,var.time, times, weightbasis="NS", knots=NULL,knots.vec
   # le call du modèle d'exposition
   # utiliser pour le calcul des effets de l'exposition passée dans le temps
 
-  WCIE <- WCIEestimation(mexpo = mexpo,var.time = var.time, times = times,
+  WCIE <- WCEland(mexpo = mexpo,var.time = var.time, times = time.frame,
                          weightbasis = weightbasis, knots = knots,knots.vector=knots.vector,
                          data = data, reg.type = reg.type, model = model)
 
@@ -347,7 +348,7 @@ WCIE2F <- function(mexpo,var.time, times, weightbasis="NS", knots=NULL,knots.vec
     # new matrice spline to compile the effect
     data_splines1 <- data.frame(unique(new_data[var.time]))
 
-    data_splines <- seq(from=times[1],to=times[2],by=times[3]) # sequence de mesure dans la fenêtre choisis
+    data_splines <- seq(from=time.frame[1],to=time.frame[2],by=time.frame[3]) # sequence de mesure dans la fenêtre choisis
 
     ## splines recompile with the same parameters than put in the wcieestimation function
     new_splines <- as.matrix(ns(unlist(data_splines),knots = WCIE$splines.quantiles,

@@ -119,7 +119,7 @@
 #' doi : 10.1186/s12874-021-01403-w
 #' @name WCIEestimation
 #' @export
-WCIEestimation <- function(mexpo,var.time, times,
+WCEland <- function(mexpo,var.time, times,
                            weightbasis, knots, knots.vector, data, reg.type, model){
 
   #####################################################
@@ -153,7 +153,7 @@ WCIEestimation <- function(mexpo,var.time, times,
   # Génération de la table avec temps irréguliers pour chaque individu
   new_data <- do.call(rbind, lapply(id_seq, function(id) {
     # Ajouter un bruit aléatoire à chaque point de temps "arrondir à n_after pour correspondre step_fixe
-    t_ind <- time_seq + runif(length(time_seq), -abs(times[4]), abs(times[4]))
+    t_ind <- time_seq + runif(length(time_seq), 0, 0)
 
     # (optionnel) Forcer le dernier point à être exactement times[2] si il est = 0
     if (timerange_max == 0) t_ind[length(t_ind)] <- timerange_max

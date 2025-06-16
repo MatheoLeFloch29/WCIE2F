@@ -68,7 +68,7 @@ doOneBootWCIE <- function(boot_params,i,times,mexpo,
   m_expo_boot <- eval(parse(text = call_hlme))
 
   # obliger de faire sans passer par une fonction
-  bpt_WCIE<-WCIEestimation(mexpo = m_expo_boot, times = times,
+  bpt_WCIE<-WCEland(mexpo = m_expo_boot, times = times,
                            var.time = var.time,weightbasis = weightbasis,knots = knots,
                            knots.vector = knots.vector,
                            data = data, reg.type = reg.type, model = model)

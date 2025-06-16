@@ -53,7 +53,7 @@
 #'
 #'
 #'
-#' @name simulateWCIE
+#' @name simulateWCE
 #'
 #'
 #' @export
@@ -235,10 +235,24 @@ simulateWCIE <- function(object ,nsim=1, seed=NULL, times,internal.step, tname, 
       outcome_covar <- Xoutcome[names(Xoutcome) !="intercept"]
       # si covariable faire alors ça
       if(length(outcome_covar)>0){
-        # ajouter les covariables au data (uniquement celle de Xoutcome)
-        data_outcome <- merge(data_outcome, Sim_D[!duplicated(Sim_D[id]), c(id, names(outcome_covar))], by = id)
-        tmp_X <- data_outcome[,covar[covar %in% names(outcome_covar)]] * outcome_covar
-        etai <- etai + rowSums(tmp_X[, names(outcome_covar)])
+        # Ajouter les covariables de outcome_covar à data_outcome
+        data_outcome <- merge(
+          data_outcome,
+          Sim_D[!duplicated(Sim_D[[id]]), c(id, names(outcome_covar))],
+          by = id
+        )
+
+        # Initialiser une matrice pour stocker les produits pondérés
+        covar_names <- names(outcome_covar)
+        tmp_X <- matrix(NA, nrow = nrow(data_outcome), ncol = length(covar_names))
+        colnames(tmp_X) <- covar_names
+
+        # Boucle sur les covariables pour remplir tmp_X
+        for (i in covar_names) {
+          tmp_X[, i] <- data_outcome[[i]] * outcome_covar[[i]]
+        }
+
+        etai <- etai + rowSums(tmp_X[, names(outcome_covar),drop=F])
       }
 
       pi <- 1/(1+exp(-etai)) # probabilité prédite

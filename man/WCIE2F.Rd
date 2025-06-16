@@ -7,7 +7,7 @@
 WCIE2F(
   mexpo,
   var.time,
-  times,
+  time.frame,
   weightbasis = "NS",
   knots = NULL,
   knots.vector = NULL,
@@ -27,8 +27,8 @@ It is essential to include \code{returnData = TRUE} in the function call to ensu
 \item{var.time}{character indicating the name of the time variable
 in the model \code{mexpo}.}
 
-\item{times}{Numeric vector of length 4
-indicating the desired time window for exposure (min, max, step, alea).}
+\item{time.frame}{Numeric vector of length 3
+indicating the desired time window for exposure (min, max, step).}
 
 \item{weightbasis}{Type of temporal weighting function used to estimate the Weighted Cumulative Indirect Effects (WCIE).
 This specifies the functional form used to model the influence of past exposures over time.
@@ -72,7 +72,7 @@ and p-values.}
 \item{sd.mean.effect}{Variance of the mean effect of exposure history over time.}
 \item{nboot}{Number of bootstrap replicates.}
 \item{call}{The matched call for the outcome model.}
-\item{knots.quantile}{Number of internal knots for splines (used only if \code{weightbasis = "NS"}).}
+\item{knots.quantile}{internal knots uses for splines (used only if \code{weightbasis = "NS"}).}
 \item{V}{Variance-covariance matrix (intra + inter) of the estimators.}
 \item{var.time}{Name of the time variable used in the model.}
 \item{AIC}{Mean AIC of the outcome model across the \code{nboot} bootstrap replicates.}
