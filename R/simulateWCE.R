@@ -30,6 +30,10 @@
 #' @param reg.type Type of outcome model: \code{"logistic"}, \code{"cox"}, ...
 #' @param knots number of internal knots
 #' @param knots.vector Vector of internal knots for the splines (used only for splines temporal weighting function).
+#' @param model two-sided linear formula object for the outcome model. The response outcome is on
+#' the left of ~ and the covariates are separated by + on the right of ~. To include the effect of past exposure,
+#' you must explicitly add \code{WCIE} (or interaction terms such as \code{WCIE:sex}) to the formula.
+#' For example, \code{Y ~ WCIE + age + sex} or \code{Y ~ WCIE:sex + age} are valid formulas.
 #' @param coef.wcie named list giving the parameters of the WCIE variables to
 #' simulate.
 #' @param Xoutcome named list giving the parameters of the intercept and the covariables in the
@@ -57,8 +61,8 @@
 #'
 #'
 #' @export
-simulateWCIE <- function(object ,nsim=1, seed=NULL, times,internal.step, tname, n, Xbin=NULL, Xcont=NULL
-                          ,weightbasis,reg.type,knots=NULL, knots.vector=NULL, coef.wcie, Xoutcome){
+simulateWCE <- function(object ,nsim=1, seed=NULL, times,internal.step, tname, n, Xbin=NULL, Xcont=NULL
+                          ,weightbasis,reg.type,knots=NULL, knots.vector=NULL,model, coef.wcie, Xoutcome){
 
   if(!is.null(knots)==T & !is.null(knots.vector)==T) stop("You must have to specify knots or knots.vector")
 

@@ -163,13 +163,14 @@
 #' @importFrom splines ns
 #' @importFrom stats glm quantile aggregate pnorm qnorm as.formula binomial knots model.matrix step vcov formula logLik
 #' @importFrom lcmm estimates VarCov predictY
+#' @importFrom survival coxph Surv
 #' @import ggplot2
 #'
 #' @author un super beau gosse
 #'
 #' @seealso
 #' \code{\link{summary.WCIE2F}}
-#' \code{\link{WCIEestimation}}
+#' \code{\link{WCEland}}
 #' \code{\link{doOneBootWCIE}}
 #'
 #'
@@ -350,7 +351,7 @@ WCIE2F <- function(mexpo,var.time, time.frame, weightbasis="NS", knots=NULL,knot
 
     data_splines <- seq(from=time.frame[1],to=time.frame[2],by=time.frame[3]) # sequence de mesure dans la fenêtre choisis
 
-    ## splines recompile with the same parameters than put in the wcieestimation function
+    ## splines recompile with the same parameters than put in the WCEland function
     new_splines <- as.matrix(ns(unlist(data_splines),knots = WCIE$splines.quantiles,
                                 Boundary.knots = WCIE$boundary.quantiles,
                                 intercept = T))
@@ -586,7 +587,7 @@ WCIE2F <- function(mexpo,var.time, time.frame, weightbasis="NS", knots=NULL,knot
                 expositioneffect=effect,
                 mexpo=WCIE[[3]],reg.type=reg.type,mean.effect=mean_effect,
                 sd.mean.effect=mean_variable_effect,nboot = n_boot,
-                call=WCIE$call, #séparé les différentes parties du call
+                call=WCIE$call, #séparé les différentes parties du call (à faire)
                 knots.quantile=WCIE$splines.quantiles,V=var_tot,var.time=var.time,AIC=mean_AIC
                 ,loglike=mean_loglike,n=n,nb.subj.del=nb_subject_delete,
                 time.processing=cost)

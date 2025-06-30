@@ -1,0 +1,65 @@
+---
+title: "Estimate weight cumulative exposure effect for a survival outcome"
+output: 
+  rmarkdown::html_vignette:
+    toc: true #table of content true
+    toc_depth : 3
+vignette: >
+  %\VignetteIndexEntry{Estimate weight cumulative exposure effect for a survival outcome}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+
+This vignette illustrates how to estimate weighted cumulative effect of a longitudinal exposition following the methodology described in Wagner et al. (2021 - https://doi.org/10.1186/s12874-021-01403-w). 
+
+```{r, results='hide',message=FALSE,warning=FALSE, echo=FALSE}
+# load("models_IRT.RData")
+```
+# Importation
+
+The longitudinal IRT model is estimated via WCIE2F function of mixWCE R package. 
+The following libraries are used in this vignette:
+
+```{r,message=F}
+library(lcmm)
+library(ggplot2)
+library(splines)
+library(survival)
+library(dplyr)
+```
+
+
+
+# Dataset (à revoir)
+
+The illustration is on a simulated dataset that mimics the PREDIALA study described and analyzed in Proust-Lima et al. (2021). The dataset is called simdataIRT. It contains the following information:
+
+- grp: group with 0=dialyzed and 1=preemptive
+- sex: sex with 0=woman and 1=man
+- age: age at entry in the cohort
+- hads_2 ... hads_14 : 7 items of HADS measuring depression
+- ID: identification number of the patient
+- time: time of measurement (months since entry on the waiting list)
+- time_entry: time on the waiting list at entry in the cohort (in months)
+
+```{r}
+str(simdataHADS)
+```
+
+## Description of the sample
+
+```{r}
+demo <- simdataHADS %>% group_by(ID) %>% arrange(time) %>%
+  filter(row_number()==1)
+summary(demo)
+```
+
+

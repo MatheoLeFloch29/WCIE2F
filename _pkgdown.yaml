@@ -1,0 +1,41 @@
+template:
+  bootstrap: 5
+  bootswatch: sandstone
+  bslib:
+    pkgdown-nav-height: 60px
+
+navbar:
+  type: light
+  left:
+    - text: "GET STARTED"
+      href: articles/mixWCE.html
+    - text: "VIGNETTES"
+      menu:
+      - text: Estimate weight cumulative exposure effect for binary outcome
+        href: articles/WCE_model_binary.html
+      - text: Estimate weight cumulative exposure effect for a survival outcome
+        href: articles/WCE_model_survival.html
+      - text: Estimate weight cumulative exposure effect for a conditional binary outcome
+        href: articles/WCE_model_conditional_binary.html
+    - text: "REFERENCE"
+      href: reference/index.html
+
+
+reference:
+  - title: Presentation
+    contents:
+    - WCIE2F
+  - title: Estimation
+    contents:
+      - WCEland
+      - doOneBootWCIE
+  - title: Extract outputs
+    contents:
+      - summary.WCIE2F
+  - title: Plots
+    contents:
+      - plot.WCIE2F
+  - title: Simulation
+    contents:
+      - simulateWCE
+

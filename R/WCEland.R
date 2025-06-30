@@ -70,7 +70,7 @@
 #' The fixed effects formula and the random effects formula must be specified. The \code{subject} argument
 #' must indicate the subject ID, and the dataset must be provided via the \code{data} argument.
 #' It is essential to include \code{returnData = TRUE} in the function call to ensure that the internal data can be accessed.
-#' @param var.time character indicating the name of the time variable
+#' @param var.time character indicating the name of the time variable for also the exposition and the outcome data
 #' in the model \code{mexpo}.
 #' @param times Numeric vector of length 4
 #' indicating the desired time window for exposure (min, max, step, alea).
@@ -110,6 +110,7 @@
 #' @importFrom splines ns
 #' @importFrom stats glm quantile aggregate
 #' @importFrom lcmm estimates VarCov predictY
+#' @importFrom survival coxph Surv
 #' @author Encore un giga beau gosse
 #'
 #' @seealso \code{\link{WCIE2F}}
@@ -117,7 +118,7 @@
 #' Maud Wagner et al. “Time-varying associations between an exposure history and a subsequent health
 #' outcome : a landmark approach to identify critical windows”. In : BMC Med Res Methodol (2021).
 #' doi : 10.1186/s12874-021-01403-w
-#' @name WCIEestimation
+#' @name WCEland
 #' @export
 WCEland <- function(mexpo,var.time, times,
                            weightbasis, knots, knots.vector, data, reg.type, model){
@@ -333,20 +334,43 @@ WCEland <- function(mexpo,var.time, times,
     loglike <- as.numeric(logLik(model_outcome))
 
     # call
-    glm_call <- deparse(model_outcome$call)
-    real_formula <- deparse(new_formula)
-    glm_call_updated <- (gsub("new_formula", real_formula, glm_call))
+    call <- (model_outcome$call)
 
   }
   if (reg.type=="cox"){
+    data.outcome <- merge(data, data_cum, by=mexpo$call[[4]]) #récupère uniquement les individus utilisés dans le modèle d'exposition et également présent dans le data pour le modèle d'expo
 
+    # remplacer les expo par les variables d'exposition dans la formule
+    new_expo<-c(NULL)
+    new_expo <- paste(paste0("WCIE", seq_len(ncol(B2K))), collapse = "+") ## donne "ns1+ns2+ns3+nsi"
+
+    formdroite <- as.character(model[3]) ## la partie à droite du tilde
+    formdroitebis <- gsub("\\bWCIE\\b", paste("(", new_expo, ")"), formdroite) # remplace "expo", par "(ns1+ns2+ns3+ns4)"
+
+    new_formula <- as.formula(paste(as.character(model[2]),"~",formdroitebis))
+
+    formule_surv <- as.formula(
+      paste0("Surv(", var.time, ", ", model[2], ") ~ ", formdroitebis)
+    )
+
+    model_outcome <- coxph(formule_surv,
+                           data = data.outcome)
+
+    # récupérer quelques statistiques pour le summary :
+
+    #log likelihood and AIC
+    AIC <- AIC(model_outcome)
+    loglike <- as.numeric(logLik(model_outcome))
+
+    # call
+    call <- (model_outcome$call)
 
 
 
   }
   return(list(model=model_outcome,data_expo=new_data, #à changer pour le dataexpo et mettre les colonnes qu'on veut
               mexpo=mexpo, data_outcome=data.outcome,
-              call=glm_call_updated,splines.quantiles=quantiles,
+              call=call,splines.quantiles=quantiles,
               boundary.quantiles=c(b5,b95),
               AIC = AIC, loglike=loglike
     )

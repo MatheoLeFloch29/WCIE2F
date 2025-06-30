@@ -21,6 +21,11 @@ Imports:
     MASS,
     ggplot2,
     splines,
-    lcmm
+    lcmm,
+    survival
 URL: https://github.com/MatheoLeFloch29/wciepackage
 BugReports: https://github.com/MatheoLeFloch29/wciepackage/issues
+Suggests: 
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr

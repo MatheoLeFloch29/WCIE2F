@@ -1,0 +1,32 @@
+---
+title: "Description of mixWCE package"
+output: 
+  rmarkdown::html_vignette:
+    toc: true #table of content true
+    toc_depth : 3
+vignette: >
+  %\VignetteIndexEntry{Estimate a latent class mixed model}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+# Functionalities of the package
+
+
+# Calls functions
+
+
+## WCIE2F
+
+# Dataset example
+
+
+
+

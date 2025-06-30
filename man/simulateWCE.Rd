@@ -2,10 +2,9 @@
 % Please edit documentation in R/simulateWCE.R
 \name{simulateWCE}
 \alias{simulateWCE}
-\alias{simulateWCIE}
 \title{Data simulation according to different outcome models from WCIEpackage}
 \usage{
-simulateWCIE(
+simulateWCE(
   object,
   nsim = 1,
   seed = NULL,
@@ -19,6 +18,7 @@ simulateWCIE(
   reg.type,
   knots = NULL,
   knots.vector = NULL,
+  model,
   coef.wcie,
   Xoutcome
 )
@@ -58,6 +58,11 @@ Currently, the following options are available: \code{"NS"} for natural splines 
 \item{knots}{number of internal knots}
 
 \item{knots.vector}{Vector of internal knots for the splines (used only for splines temporal weighting function).}
+
+\item{model}{two-sided linear formula object for the outcome model. The response outcome is on
+the left of ~ and the covariates are separated by + on the right of ~. To include the effect of past exposure,
+you must explicitly add \code{WCIE} (or interaction terms such as \code{WCIE:sex}) to the formula.
+For example, \code{Y ~ WCIE + age + sex} or \code{Y ~ WCIE:sex + age} are valid formulas.}
 
 \item{coef.wcie}{named list giving the parameters of the WCIE variables to
 simulate.}
