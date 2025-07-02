@@ -1,23 +1,23 @@
-#' @method summary WCIE2F
-#' @param object An object of class \code{WCIE2F} returned by the \code{WCIE2F} function.
+#' @method summary WCEland
+#' @param object An object of class \code{WCEland} returned by the \code{WCEland} function.
 #' @param ... Further arguments (currently not used).
-#' @title summary.WCIE2F
-#' @return Prints a summary of the WCIE2F analysis including model information, estimation results, and bootstrap details.
-#' @name summary.WCIE2F
+#' @title summary.WCEland
+#' @return Prints a summary of the WCEland analysis including model information, estimation results, and bootstrap details.
+#' @name summary.WCEland
 #' @export
 #'
 #' @examples
 #' \dontrun{
-#' res <- WCIE2F(mexpo = mexpo,
+#' res <- WCEland(mexpo = mexpo,
 #'     var.time = "TIME",
 #'     timerange = c(0, 10),
 #'     data = data,
 #'     model = outcome_model)
 #' summary(res)
 #' }
-summary.WCIE2F <- function(object, ...) {
+summary.WCEland <- function(object, ...) {
 
-  cat("Weighted Cumulative Index Estimation (WCIE2F) \n")
+  cat("Weighted Cumulative Index Estimation (WCEland) \n")
   cat("     fitted by weighted bootstrap method \n")
   cat(" \n")
   cat(object$call, "\n")

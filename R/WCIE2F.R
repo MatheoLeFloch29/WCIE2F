@@ -1,78 +1,49 @@
-#' Estimation of the Weighted Cumulative Effect with Two-Level Bootstrap \code{WCIE2F}
+#' Estimation of the Weighted Cumulative Effect with Two-Level
+#'
+#' @description
+#' This function estimates the effect of an exposure history on a health outcome
+#' (such as a binary event, survival time, or repeated event),
+#' using the WCIE (Weighted Cumulative Index of Exposure) approach.
+#' It is designed for longitudinal data where exposure varies over time,
+#' and where the goal is to model the effect of this time-varying exposure on an outcome.
 #'
 #'
-#' @description This function estimates the effects of a past exposure on a health outcome
-#' using the WCIE method, accounting for parameter uncertainty through a two-level bootstrap.
-#' It uses a longitudinal exposure model \code{hlme} and an outcome model
-#' to compute time-weighted effects of exposure.
+#' A. Estimation follows the following steps:
 #'
+#' (1) Individual prediction of exposure:
+#' Based on the mixed model \code{mexpo}, which must be an object of class \code{hlme},
+#' individual exposure trajectories are predicted over a user-defined time window
+#' (\code{timerange}) and frequency (\code{step}).
+#' The presence or absence of a random intercept is taken into account, but random effects
+#' must be explicitly specified.
+#' The temporal structure (e.g., splines, polynomials) used in the original model is preserved,
+#' but must be directly included in the \code{mexpo} model.
 #'
-#' @details \strong{A. The estimation follows these steps:}
+#' (2) Reconstruction of the exposure history:
+#' A temporal weighting basis is used to construct the WCIE, i.e., time-weighted exposure scores.
+#' Currently, only natural splines (NS) are implemented. The spline knots are automatically
+#'  computed based on time quantiles, according to the number of internal knots (\code{knots})
+#'  specified by the user.
 #'
-#' (1) Extraction of the parameters from the mixed model \code{mexpo} :
-#' The function extracts the mean (\code{mu}) and the variance-covariance matrix (\code{Sigma})
-#' estimated parameters using \code{estimates()} and \code{VarCov()}.
+#' (3) Computation of the WCIE:
+#' The WCIE corresponds to the weighted sum of the products between time spline basis functions
+#'  and predicted exposure values.
+#' Each spline generates a separate WCIE component (e.g., WCIE1, WCIE2, ...).
 #'
-#' (2) Generation of bootstrap parameter sets :
-#' Using multivariate normal random sampling (\code{mvrnorm()}), \code{n_boot} samples of
-#' parameters are simulated around the estimated mean and variance of the exposure model.
+#' (4) Outcome modeling:
+#' A model is then fitted to the outcome, incorporating the WCIE components as explanatory
+#' variables.
+#' Two types of models are currently available via the \code{reg.type} argument:
+#' - "logistic": logistic regression (GLM model)
+#' - "cox": Cox proportional hazards model (under development)
+#' The final formula is automatically reconstructed based on the original model, replacing
+#' the exposure term with the sum of WCIE components.
 #'
-#' (3) Cholesky transformation (if necessary) :
-#' If the random effects are correlated (i.e., \code{idiag = 0}), the Cholesky components
-#' are transformed into full variance-covariance matrices for each bootstrap.
-#' If \code{idiag = 1}, only the variances are adjusted by squaring.
-#'
-#' (4) Repeated estimation of WCIE and the outcome model :
-#' For each bootstrap parameter set, the WCIE is recalculated and the outcome model is fitted.
-#'  This step uses the \code{doOneBoot()} function, which
-#' returns for each iteration :
-#'
-#' \itemize{
-#'  \item{The estimated coefficients of the outcome model,}
-#'  \item{The intra-individual variance matrix.}
-#' }
-#'
-#' (5) Calculation of bootstrap variances (Gelman-Rubin method) :
-#' The total variance of the parameters is decomposed as follows :
-#'
-#' \itemize{
-#'  \item\emph{Intra-bootstrap variance} : average of the variance matrices from
-#'  each iteration.
-#'  \item\emph{Inter-bootstrap variance} : dispersion of the estimators from the different
-#'  simulated parameter sets, calculated using the Gelman-Rubin formula: \cr
-#'  \deqn{\frac{n+1}{n(n-1)} \sum_{i=1}^n (\theta_i - \bar{\theta})(\theta_i - \bar{\theta})^T}
-#'  \item\emph{Total variance} : sum of the two components above.
-#' }
-#'
-#' (6) Construction of confidence intervals and p-values :
-#' From the total variance, a corrected standard deviation is calculated. 95% confidence
-#' intervals, z-values, and p-values are then produced for each parameter.
-#'
-#' (7) Temporal Exposure Effect Estimation :
-#' Based on the fitted model, the WCIE effects are computed as a linear combination of splines weighted by their estimated coefficients.
-#' This approach estimates the time-varying effect of past exposure over a specified time window (defined by \code{timerange}).
-#'
-#' Two scenarios are handled:
-#' \itemize{
-#'   \item \emph{Without interactions:} The effect at each time point is given by:
-#'   \deqn{w(t) = B(t)^T \theta}
-#'   where \eqn{B(t)} is the spline basis at time \eqn{t}, and \eqn{\theta} are the estimated WCIE coefficients.
-#'
-#'   \item \emph{With interactions:} The time-varying effect is modified according to covariates (e.g., sex, age) using the model’s design matrix.
-#'   The spline × covariate interaction terms are incorporated as:
-#'   \deqn{w(t,x) = B(t)^T \theta + \sum_j B(t)^T \theta_j x_j}
-#' }
-#'
-#' (8) Uncertainty Quantification :
-#' The variance of the WCIE effect at each time point is computed by using the Delta method
-#' with an extended form for interaction cases. These variances allow the construction of 95% confidence intervals around the estimated effect.
-#'
-#' An overall average effect across the time window is also estimated
-#' and its variance is derived based on the average of the spline basis across time.
-#'
-#' (9) Graphical Representation :
-#' A graphical output is generated to visualize the estimated time-varying effect of exposure along with its confidence interval.
-#' This helps identify critical periods where exposure has a significant impact on the outcome.
+#' The function output includes:
+#' - the fitted outcome model (glm),
+#' - the temporal predictions (Ypred) and random effects,
+#' - the time quantiles used for splines,
+#' - the final formula used in the outcome model.
 #'
 #'
 #' \strong{B. USAGE PRECAUTIONS:}
@@ -88,20 +59,10 @@
 #' (\code{timerange}) is poorly chosen. Users should inspect the shape of the weight function and
 #' consider simplifying it if convergence issues or unreasonable effects are detected.
 #'
-#' (3) The bootstrap procedure used to estimate standard errors can be computationally intensive.
-#' With large datasets or many bootstrap replicates (\code{n_boot}), execution time may increase
-#' significantly. It is advised to start with a smaller number of replicates to ensure model
-#' convergence before increasing \code{n_boot} for final inference.
-#'
-#' (4) Convergence problems can occur in the outcome model if the WCIE variables are highly
+#' (3) Convergence problems can occur in the outcome model if the WCIE variables are highly
 #' collinear, especially when using a fine time grid (\code{step}) or too many \code{knots}. If the model
 #' fails to converge, consider reducing the number of time points or the complexity of the
 #' spline basis.
-#'
-#' (5) When the outcome model includes additional covariates or interaction terms, care should
-#' be taken to avoid overfitting or misinterpretation of the WCIE effect. The WCIE component
-#' should be interpreted as a marginal cumulative effect, conditional on other covariates in
-#' the model
 #'
 #'
 #' @param mexpo An object of class \code{hlme} from the \code{lcmm} package, used to model the exposure process.
@@ -109,10 +70,10 @@
 #' The fixed effects formula and the random effects formula must be specified. The \code{subject} argument
 #' must indicate the subject ID, and the dataset must be provided via the \code{data} argument.
 #' It is essential to include \code{returnData = TRUE} in the function call to ensure that the internal data can be accessed.
-#' @param var.time character indicating the name of the time variable
+#' @param var.time character indicating the name of the time variable for also the exposition and the outcome data
 #' in the model \code{mexpo}.
-#' @param time.frame Numeric vector of length 3
-#' indicating the desired time window for exposure (min, max, step).
+#' @param times Numeric vector of length 4
+#' indicating the desired time window for exposure (min, max, step, alea).
 #' @param weightbasis Type of temporal weighting function used to estimate the Weighted Cumulative Indirect Effects (WCIE).
 #' This specifies the functional form used to model the influence of past exposures over time.
 #' Currently, the following options are available: \code{"NS"} for natural splines (implemented),
@@ -130,471 +91,290 @@
 #' the left of ~ and the covariates are separated by + on the right of ~. To include the effect of past exposure,
 #' you must explicitly add \code{WCIE} (or interaction terms such as \code{WCIE:sex}) to the formula.
 #' For example, \code{Y ~ WCIE + age + sex} or \code{Y ~ WCIE:sex + age} are valid formulas.
-#' @param n_boot Number of bootstrap replicates to perform (default = 500).
-#' Bootstrapping is used to approximate the estimation uncertainty and compute the variance of the estimations.
-#'
 #'
 #' @return A list containing:
-#'
-#' \item{estimate}{Table of final outcome model estimators: mean (Estimate),
-#' standard error (Se), confidence intervals (con.low, conf.high), z-statistic,
-#' and p-values.}
-#' \item{data.expo}{Intermediate data set with individual predictions.}
-#' \item{data.outcome}{Data set used to fit the outcome model.}
-#' \item{effect.plot}{Graph representing the estimate effects of exposure history.}
-#' \item{exposition.effect}{Table with the estimate effects of exposure history, is standard error, IC}
-#' \item{mexpo}{Exposure model \code{hlme} object provided at the beginning.}
-#' \item{reg.type}{Type of regression model used.}
-#' \item{mean.effect}{Mean effect of exposure history.}
-#' \item{sd.mean.effect}{Variance of the mean effect of exposure history over time.}
-#' \item{nboot}{Number of bootstrap replicates.}
-#' \item{call}{The matched call for the outcome model.}
-#' \item{knots.quantile}{internal knots uses for splines (used only if \code{weightbasis = "NS"}).}
-#' \item{V}{Variance-covariance matrix (intra + inter) of the estimators.}
-#' \item{var.time}{Name of the time variable used in the model.}
-#' \item{AIC}{Mean AIC of the outcome model across the \code{nboot} bootstrap replicates.}
-#' \item{loglike}{Mean log-likelihood of the outcome model across the \code{nboot} bootstrap replicates.}
-#' \item{n}{Number of subjects.}
-#' \item{nb.subj.del}{Number of subjects removed.}
-#' \item{time.processing}{Total computation time (proc.time() object).}
+#'   \item{model}{outcome model object}
+#'   \item{data_expo}{Intermediate data set with individual predictions.}
+#'   \item{mexpo}{Exposure model \code{hlme} object provided at the beginning.}
+#'   \item{data_outcome}{Data set used to fit the outcome model.}
+#'   \item{call}{The matched call for the outcome model.}
+#'   \item{splines.quantiles}{The internal quantiles used for the natural splines,
+#'   which define the time-weighting function.}
+#'   \item{boundary.quantiles}{The lower and upper bounds of the natural splines
+#'   (5th and 95th percentiles), used to define the limits of the time-weighting function.}
+#'   \item{AIC}{AIC criteria of the outcome model.}
+#'   \item{loglike}{log-likelihood of the outcome model.}
 #'
 #'
 #' @import dplyr
 #' @importFrom splines ns
-#' @importFrom stats glm quantile aggregate pnorm qnorm as.formula binomial knots model.matrix step vcov formula logLik
+#' @importFrom stats glm quantile aggregate
 #' @importFrom lcmm estimates VarCov predictY
 #' @importFrom survival coxph Surv
-#' @import ggplot2
+#' @author Encore un giga beau gosse
 #'
-#' @author un super beau gosse
-#'
-#' @seealso
-#' \code{\link{summary.WCIE2F}}
-#' \code{\link{WCEland}}
-#' \code{\link{doOneBootWCIE}}
-#'
-#'
+#' @seealso \code{\link{WCIE2F}}
 #' @references
 #' Maud Wagner et al. “Time-varying associations between an exposure history and a subsequent health
 #' outcome : a landmark approach to identify critical windows”. In : BMC Med Res Methodol (2021).
 #' doi : 10.1186/s12874-021-01403-w
-#'
 #' @name WCIE2F
-#'
-#'
 #' @export
-WCIE2F <- function(mexpo,var.time, time.frame, weightbasis="NS", knots=NULL,knots.vector=NULL,
-                   data, reg.type="RL", model,n_boot=500){
+WCIE2F <- function(mexpo,var.time, times,
+                           weightbasis, knots, knots.vector, data, reg.type, model){
 
-  ptm <- proc.time()
+  #####################################################
+  ##### 1) prediction individuelle de l'exposition ####
+  #####################################################
 
-  if(is.null(mexpo$data)==T) stop("The argument mexpo need to specify returndata = T")
-  if(!inherits(mexpo,"hlme")) stop("The argument mexpo must be a hlme object")
-  if (is.null(data)==T) stop("the argument outcome_data is missing")
-  if (is.null(model)==T) stop("the argument outcomeformula is missing")
-  #if (timerange[1]<min(mexpo$data[var.time])) stop("the argument timerange must be equal or higher then the minimum time value")
-  #if (timerange[2]>max(mexpo$data[var.time])) stop("the argument timerange must be equal or less then the maximum time value")
-  if(is.null(knots)==T&is.null(knots.vector)==T) stop("You must have to specify knots or knots.vector")
+  # fenêtre d'exposition souhaitée par l'utilisateur
+  timerange_min <- times[1]
+  timerange_max <- times[2]
+
+  # Créer un jeu de données avec le même nb d'individu et le bon nombre de ligne par individu
+
+  time_seq <- seq(from=timerange_min,to=timerange_max,by=times[3]) # sequence de mesure dans la fenêtre choisis
 
 
-  # Extraire la moyenne et la matrice de variance-covariance des paramètres estimés du modèle d'exposition
-  mu <- as.matrix(estimates(mexpo))
-  Sigma <- as.matrix(VarCov(mexpo))
+  nb_ind <- mexpo$ns  # nb d'individu
+  id_seq<-mexpo$pprob[[mexpo$call[[4]]]] # séquence d'identifiant utilisée dans le modèle (en vecteur)
 
-  # Pour passer de la cholesky à la variance :
+  #new_data <- data.frame(id= rep(id_seq, each = length(time_seq))) # reprendre la séquence d'ID données par les data de l'individu
 
-  # Générer les nouvelles valeurs des paramètres bootstrap
-  boot_params <- MASS::mvrnorm(n = n_boot, mu = mu, Sigma = Sigma)
 
-  NPROB = mexpo$N[1]
-  NEF = mexpo$N[2]
-  NVC = mexpo$N[3]
-  idiag0 = mexpo$idiag
-  nea0 = sum(mexpo$idea0)
+  # renommer l'identifiant comme celui de l'utilisateur
+  #colnames(new_data)[1]<- mexpo$call[[4]]
 
-  ######## passer de cholesky à varcov ##################
+  # tire une séquence pour chaque individu de la fenêtre qu'il veut analyser
+  #new_data[var.time] <- rep(time_seq, nb_ind)
 
-  if(idiag0==0 & NVC>0){
+  # si on rajoute de l'aléatoire sur la date de visite (chiffre à virgule plutôt que entier)? voir si
+  # on arrive à estimer plus de WCIE
 
-    for (i in 1:nrow(boot_params)) {
-      # Extraire les paramètres Cholesky de l'échantillon i
-      Cholesky <- boot_params[i, (NPROB+NEF+1):(NPROB+NEF+NVC)]
+  # Génération de la table avec temps irréguliers pour chaque individu
+  new_data <- do.call(rbind, lapply(id_seq, function(id) {
+    # Ajouter un bruit aléatoire à chaque point de temps "arrondir à n_after pour correspondre step_fixe
+    t_ind <- time_seq + runif(length(time_seq), 0, 0)
 
-      # Construire la matrice triangulaire supérieure U
-      U <- matrix(0, nrow = nea0, ncol = nea0)
-      U[upper.tri(U, diag = TRUE)] <- Cholesky
-
-      # Transformer en matrice de variance-covariance
-      varcov <- t(U) %*% U
-
-      # Remplacer dans boot_params
-      boot_params[i, (NPROB+NEF+1):(NPROB+NEF+NVC)] <- varcov[upper.tri(varcov, diag = TRUE)]
-    }
-
-  }
-  if(idiag0==1 & NVC>0){
-    for (i in 1:dim(boot_params)[1]) {
-      boot_params[i,(NPROB+NEF+1):(NPROB+NEF+NVC)] <- boot_params[i,(NPROB+NEF+1):(NPROB+NEF+NVC)]**2
-    }
-  }
-
-  #  if(outcome_type=="RL"){
-
-  ###########################################
-  ########### start bootsrap ################
-  ###########################################
-
-  # save all the bootstrap dans boot_result
-
-  boot_results <- lapply(1:n_boot, function(i) {
-    doOneBootWCIE(i = i,boot_params=boot_params,
-                  times = time.frame,mexpo=mexpo,knots.vector=knots.vector,
-                  var.time = var.time,weightbasis = weightbasis,knots = knots,
-                  data = data, reg.type = reg.type, model = model)}
-  )
-
-  # remplacer la boucle for par un replicate qui utilise la fonction doOneBoot et qui sort :
-  # -une liste des paramètres estimés pour chaque bootstrap
-  # -une liste des matrices de variancecovariance
-
-  # parameters mean for n_boot bootstrap
-  boot_est <- sapply(boot_results, function(x) x[[1]])
-  # reprendre ici et faire mean
-  ## Intra-individual variability
-  var_intra <- Reduce("+",lapply(boot_results, function(x) x[[2]]))/n_boot
-
-  ## Inter-individual variability (formule pour bootsrap de gelman rubin)
-  #(M+1)/(M(M-1))sum(teta-mean(teta)²)
-  mean_boot_est <- apply(boot_est, 1, function(x) mean(x))
-
-  somme_var_var <- Reduce("+", lapply(1:ncol(boot_est), function(i) {
-    (boot_est[, i] - mean_boot_est) %*% t(boot_est[, i] - mean_boot_est)# fait la somme des teta-mean(teta)²
+    # (optionnel) Forcer le dernier point à être exactement times[2] si il est = 0
+    if (timerange_max == 0) t_ind[length(t_ind)] <- timerange_max
+    data.frame(id = id, time = t_ind)
+    # on peut faire pareil pour la première valeur
   }))
 
-  var_inter <- ((n_boot + 1)/(n_boot*(n_boot-1)))*somme_var_var #applique le (M+1)/(M(M-1))
-  rownames(var_inter)<-colnames(var_intra)
+  # renommer comme l'utilisateur
+  colnames(new_data)[1]<- mexpo$call[[4]]
+  colnames(new_data)[2]<- var.time
 
-  #essayer avec le M-1/M pour voir
 
-  #######################################################
-  ########## end bootstrap ##############################
-  #######################################################
 
-  ####################################################
-  ############## parameters estimations ##############
-  ####################################################
 
-  # Var tot parameters
-  var_tot <- var_inter + var_intra
+  #########################################################################################################################
+  ###################### prendre en compte les différentes fonctions du temps possible que l'utilisateur peut rentrer #####
+  #########################################################################################################################
 
-  # récupérer la diagonale pour récupérer la variance corrigée avec le bootstrap
-  var_estim<-as.matrix(diag(var_tot))
 
-  # calcul écart type
-  parameters_var<-cbind(mean_boot_est, sqrt(var_estim))
-  colnames(parameters_var) <- c("Estimate","Se")
-  parameters_var <- as.data.frame(parameters_var)
+  ######################## si la personne utilise des bs/ns/PF directement dans le modèle #################################
+  # obligation de demander de remplir directementla fonction dans la formule du modèle hlmr sinon impossible de connaitre ce que la personne à
+  # utiliser comme fonction
 
-  #calculer les IC
-  parameters_var$con.low <- parameters_var$Estimate - qnorm(0.975)  * (parameters_var$Se)
-  parameters_var$conf.high <- parameters_var$Estimate + qnorm(0.975)  * (parameters_var$Se)
 
-  #calculer la stat de test
-  parameters_var$z_value <- parameters_var$Estimate / (parameters_var$Se)
+  # recup covariable utilisé dans le modèle
+  covar<-mexpo$Xnames2[!mexpo$Xnames2 %in% var.time][-1]
 
-  #calculer la p-valeur (pour une loi normal)
-  parameters_var$p_values <- 2 * (1 - pnorm(abs(parameters_var$z_value)))
+  value_fixe_covar <- distinct(mexpo$data[c(covar,mexpo$call[[4]])])
+  new_data <- merge(new_data, value_fixe_covar, by = mexpo$call[[4]])
+
+  ######## predexpo ###############
+
+# si pas d'effets aléatoires alors faire ça :
+
+# si forme du temps pour les effets aléatoires uniquement alors faire ça
+# recompile les effets aléatoires pour la nouvelle fenêtre de données (pour n'importe quelle fonction du temps ou pas)
+  variable_RE <- model.matrix(as.formula(paste("~", mexpo$call[[3]][2])), data = new_data[var.time])
+
+# si même forme du temps pour les effets aléatoires alors :
+# faire une boucle sur les prédictions car on peut que faire une seul à la fois
+  new_data$Ypred <- NA
+  for (n in id_seq) {
+    #récupérer les random effect de l'individu n
+    truc <- mexpo$predRE[mexpo$predRE[[mexpo$call[[4]]]]==n,]
+    data_pred<-new_data[new_data[[mexpo$call[[4]]]]==n,]
+
+    # faire la prediction de cette individu
+    new_pred<-predictY(mexpo,newdata = data_pred,
+                       predRE = truc,var.time = var.time
+                       )
+
+    # merge ces prédictions au new_data
+    new_data$Ypred[new_data[[mexpo$call[[4]]]]==n] <- new_pred$pred
+  }
+
+  ######### +  les predRE si il y  a des effets aléatoire dans le modèle ############
+
+  # récupérer les paramêtres des effets aléatoires du model et les renommer (prendre en compte la présence d'un intercept aléatoire)
+  #predRE <- mexpo$predRE
+  #if((grepl("^-1", as.character(mexpo$call$random)[2])==F)){
+  #  variable_RE <- variable_RE[,-1] # enlever l'intercept du varRE généré par le model.matrix
+  #  for (h in 1:(ncol(predRE)-2)) {
+  #    colnames(predRE)[h+2] <- paste0("predRE",h)
+  #  }
+  #}else{ # si pas d'intercept aléatoire
+  #  for (h in 1:(ncol(predRE)-1)) {
+  #    colnames(predRE)[h+1] <- paste0("predRE",h)
+  #  }
+  #}
+  #new_data <- merge(new_data, predRE,by =  mexpo$call[[4]]) #merge les predRE (effets aléatoires) par individu
+
+  # si présence d'un intercept aléatoire alors le rajouter dans le calcul de la prédiction
+  #if(grepl("^-1", as.character(mexpo$call$random)[2])==F){
+  #  new_data$Ypred <- new_data$Ypred + new_data$intercept
   #}
 
+  # predictY + effet aléatoire*variableRE
+  # si au moins 2 colonnes alors faire la boucle sinon pas de boucle (else)
+  #if(is.vector(variable_RE)==F) {
+  #  for (m in 1:(ncol(variable_RE))) {
+  #    new_data$Ypred <- new_data$Ypred +
+  #      (variable_RE[,m]*new_data[paste0("predRE",m)])
+  #  }
+  #}else{
+  #  new_data$Ypred <- new_data$Ypred +
+  #    (variable_RE*new_data["predRE1"])
+  #}
+
+  ################################################################################################################
 
 
-  #######################################################################################
-  #################### calcul des effets de l'expositon #################################
-  #######################################################################################
 
 
-  # faire tourner un modèle pour quand même récupérer les nouvelles données (dans la nouvelle fenêtre)
-  # les nouvelles data du modèle d'expo et avec l'outcome
-  # le call du modèle d'exposition
-  # utiliser pour le calcul des effets de l'exposition passée dans le temps
+  ##########################################################
+  ###### 2) Récupérer l'historique d'exposition ############
+  ##########################################################
+  data_expo_pred <- new_data
 
-  WCIE <- WCEland(mexpo = mexpo,var.time = var.time, times = time.frame,
-                         weightbasis = weightbasis, knots = knots,knots.vector=knots.vector,
-                         data = data, reg.type = reg.type, model = model)
-
-  new_data <- WCIE$data_expo #data exposition
-  data_outcome <- WCIE$data_outcome #data outcome
-
-  n <- n_distinct(data_outcome) # subject nb
-  n_obs <- nrow(data_outcome) # nb d'observation total
-  nb_subject_delete <- n_distinct(data)-n # nombre de sujet enlevee
-  nb_obs_delete <- nrow(data)-n_obs # nb d'observation enlevee
-
-  mean_AIC <- mean(sapply(boot_results, function(x) x$AIC)) #mean AIC bootstrap
-  mean_loglike <- mean(sapply(boot_results, function(x) x$loglike)) #mean loglikelihood bootstrap
-
-  # mettre une condition sur le type d'outcome
-  if(reg.type=="logistic"){
-
-    ##################### repérer si il y a des intéractions dans le modèle #####################
-
-    # Identifier toutes les interactions contenant "WCIEX" (avant ou après le :)
-    var <- grep("WCIE[0-9]+:", rownames(parameters_var), value = TRUE)
-    var <- c(var, grep(":WCIE[0-9]+$", rownames(parameters_var), value = TRUE))
-
-    ##################################################################
-    ########### si pas d'interaction alors faire ça ##################
-    ##################################################################
-
-    # new matrice spline to compile the effect
-    data_splines1 <- data.frame(unique(new_data[var.time]))
-
-    data_splines <- seq(from=time.frame[1],to=time.frame[2],by=time.frame[3]) # sequence de mesure dans la fenêtre choisis
-
-    ## splines recompile with the same parameters than put in the WCEland function
-    new_splines <- as.matrix(ns(unlist(data_splines),knots = WCIE$splines.quantiles,
-                                Boundary.knots = WCIE$boundary.quantiles,
-                                intercept = T))
-    # renommer WCIE1:WCIEk
-    colnames(new_splines) <- paste0("WCIE", 1:ncol(new_splines))
-
-    # faire une première boucle sur les WCIE sans intéraction
-
-    # Calculer l'effet total avec une boucle
-    effect <- data.frame(time=data_splines,eff_expo=0)
-    effect <- effect %>% arrange(effect[1])
-    # si il y a pas d'intéraction - faire juste une boucle sur les WCIE
-    for (s in 1:dim(new_splines)[2]){
-      effect$eff_expo <- effect$eff_expo + parameters_var[paste0("WCIE",s),"Estimate"]*new_splines[,s]
-    }
-
-    #################################################################
-    ###### si présence d'intéraction alors faire ça : ###############
-    #################################################################
-
-    if(length(var)>0){
-
-      # variable présente dans le modèle
-      vars_model <- all.vars(formula(model))
-      # Variables communes entre les deux
-      vars_communes <- intersect(names(data_cov_int),vars_model)
-      # recréer le jeu de donnée avec les mêmes valeurs
-
-      # pour que model.matrix fonctionne il doit y avoir au moins deux lignes dans data_cov_int
-      # donc créer une deuxième ligne factice et la supprimer après avoir récupérer le bon nom de variable
-
-      # Extraire les variables catégorielles du modèle initial
-      vars_categorielle <- names(Filter(is.factor, model$model))
-
-      # Appliquer les mêmes niveaux aux variables catégorielles du nouveau dataset
-      # obliger a ne pas mettre le as.factor dans le modèle
-      for (var_cat in vars_categorielle) {
-
-        if (var_cat %in% names(data_cov_int)) {
-          niveaux <- levels(model$model[[var_cat]])  # Récupérer les niveaux du modèle
-          data_cov_int[[var_cat]] <- factor(data_cov_int[[var_cat]], levels = niveaux)  # Appliquer
-        }
-      }
-
-      # Générer la nouvelle matrice avec les mêmes variables que dans le modèle
-      new_data_cov_int <- model.matrix(as.formula(paste("~", paste(colnames(data_cov_int), collapse = " + "))), data = data_cov_int)[,-1]
-      new_data_cov_int <- as.data.frame(t(new_data_cov_int))
-
-      # si une variable laisser new_data_cov_int comme celui de base
-      if(ncol(data_cov_int)==1 & ncol(new_data_cov_int)==1){
-        new_data_cov_int<-data_cov_int
-      }
-
-      doOneBoot_effectInt<-function(i){
-
-        # Faire une boucle sur l'ensemble des variables WCIE sans interaction
-        effect <- data.frame(time=data_splines,eff_expo=0)
-        effect <- effect %>% arrange(effect[1])
-        # si il y a pas d'intéraction - faire juste une boucle sur les WCIE
-        for (s in 1:dim(new_splines)[2]){
-          effect$eff_expo <- effect$eff_expo + boot_est[i,paste0("WCIE",s)]*new_splines[,s]
-        }
-
-        ######### + rajouter les intéractions #############
-
-        for(q in 1:ncol(new_data_cov_int)){
-
-          # repérer la place des intéraction
-          repaire <- grep(paste0(colnames(new_data_cov_int)[q],"."), colnames(boot_est),value = T)
-          repaire <- c(repaire, grep(paste0(".",colnames(new_data_cov_int)[q]), colnames(boot_est),value = T))
-
-          #si 1 variable en interaction alors repasser sous forme de chiffre l'unique valeur pour pouvoir utiliser new_data_cov_int
-          p<-1 #si plusieurs covariable intéraction alors réinitialise le compteur des splines à 1
-          if (dim(new_data_cov_int)[2]==1) {
-            new_data_cov_int2 <- data_cov_int[1,1]
-            for (g in 1:length(repaire)) {
-              #rajouter valeur
-              effect$eff_expo <- effect$eff_expo + boot_est[i,repaire[g]] * new_splines[,p] * new_data_cov_int2[q]
-              p <- ifelse(p == (knots + 1), 1, (p + 1))
-            }
-          }else{
-            for (g in 1:length(repaire)) {
-              #rajouter valeur
-              effect$eff_expo <- effect$eff_expo + boot_est[i,repaire[g]] * new_splines[,p] * new_data_cov_int[,q]
-              p <- ifelse(p == (knots + 1), 1, (p + 1))
-            }
-          }
-        }
-        return(effect)
-      }
-
-      boot_effect <- lapply(1:nrow(boot_est), doOneBoot_effectInt)
-
-      mean_effect<- cbind(boot_effect[[1]][1],rowMeans(sapply(boot_effect, function(x) x[,2])))
+  if (weightbasis=="NS") {
 
 
+
+
+    if (is.null(knots)==F) {
+      # Créer un vecteur de probabilités (par exemple 5 quantiles => 0.2, 0.4, 0.6, 0.8, 1)
+      probs <- seq(0, 1, length.out = knots+2)
+      probs <- probs[-c(1, length(probs))]
+
+      b5  <- quantile(data_expo_pred[var.time],probs = c(0.05),na.rm=T)
+      b95 <- quantile(data_expo_pred[var.time],probs = c(0.95),na.rm=T)
+      # Calculer les quantiles automatiquement
+      quantiles <- quantile(data_expo_pred[var.time], probs = probs, na.rm = TRUE)
     }
 
 
-    ### si pas d'interaction alors le calcul de la variance des effets se fait ainsi :
+    if (is.null(knots.vector)==F) {
+      # si quantile choisis arbitrairement
+      quantiles<-c(knots.vector$knots)
 
-    if(length(var)==0){
-
-      # 1) récupérer la matrice de variance co-variances qui nous intéressent
-      # Stocker les résultats dans la matrice
-      eff_varCov_tot <- var_tot[grepl("WCIE\\d+", rownames(var_tot)),
-                                grepl("WCIE\\d+", colnames(var_tot))]
-
-      # 2) calculer la variance pour chaque temps v(w(t))=B(t)'v(teta)B(t)
-      effect <- as.data.frame(effect)
-      effect$var_eff <- 0
-      for(z in 1:nrow(effect)){
-        effect$var_eff[z] <- t(new_splines[z,]) %*% eff_varCov_tot %*% new_splines[z,]
-      }
-
-
+      b5  <- knots.vector$boundary.knots[1]
+      b95 <- knots.vector$boundary.knots[2]
 
     }
 
-    ### si présence d'intéraction alors faire ça : (à faire vérifier car pas sûr)
-    if(length(var)>0){
+    ## splines recompile
+    B2K <- as.matrix(ns(unlist(data_expo_pred[var.time]),knots = quantiles,
+                        Boundary.knots = c(b5, b95),
+                        intercept = T))
 
-      # 1) récupérer la matrice de variance co-variances qui nous intéressent (avec les intéractions)
+    data_expo_pred <-cbind(data_expo_pred,B2K)
 
-      # Stocker les résultats dans la matrice
-      eff_varCov_tot <- var_tot[grepl("WCIE\\d+", rownames(var_tot)),
-                                grepl("WCIE\\d+", colnames(var_tot))]
+    ## faire la prédiction * les nouveaux splines (Xi(Tu)*Bk(Tu))
+    for (r in 1:length(colnames(B2K))) {
+      data_expo_pred[paste0("COCO",r)] <- data_expo_pred$Ypred * data_expo_pred[colnames(B2K)[r]]
+    } #Xi fois les Bk
 
-      # 2) calculer la variance pour chaque temps v(w(t))=B(t)'v(teta)B(t) en prenant en compte l'intéraction
-
-      #Créer la matrice des splines*les intéraction (autant de fois qu'il y a d'intéraction) B(t)
-      # code à revoir (pas sûr mais semble ok)
-
-      # sinon si présence de variable catégorielle alors créer la matrice splines*intéraction de cette manière
-      new_matheo<-matrix(0,nrow = nrow(new_splines),ncol = nrow(eff_varCov_tot))
-      colnames(new_matheo) <- colnames(eff_varCov_tot)
-
-      # ajouter les valeurs des splines aux endroits correspondants
-      for (k in 1:ncol(new_splines)) {
-        for (f in 1:ncol(new_matheo)) {
-          if(grepl(colnames(new_splines)[k], colnames(new_matheo)[f])){
-            new_matheo[,f] <- new_splines[,k]
-          }
-        }
-      }
-      # multiplier les valeurs avec les covariables lorsqu'il y a une intéraction
-      for (k in 1:ncol(new_data_cov_int)) {
-        for (f in 1:ncol(new_matheo)) {
-          if(grepl(colnames(new_data_cov_int)[k], colnames(new_matheo)[f])){
-            new_matheo[,f] <- new_matheo[,f]*new_data_cov_int[,k]
-          }
-        }
-      }
-
-
-      # faire le calcul de V(w(t))
-      effect <- as.data.frame(effect)
-      effect$var_eff <- 0
-      for(z in 1:nrow(effect)){
-        effect$var_eff[z] <- t(new_matheo[z,]) %*% eff_varCov_tot %*% new_matheo[z,]
-      }
-
-
-      ######################## à verifier mais semble ok ##################################
-      # calculer l'effet moyen de 0 à -T
-      # calculer l'effet moyen wbarre = 1/T+1 somme(w(u))
-      real_mean_effect <- 1/(nrow(effect)+1)*sum(effect[2])
-
-      # sans interaction
-      # calculer sa variance v(wbarre=(1/T+1 somme(B(t)'))*v(teta)*(1/T+1 somme(B(t)))
-      col_means_splines <- colSums(new_matheo) / (nrow(effect)+1) #1/T+1(B(t))
-      real_mean_var_effect <- t(col_means_splines) %*% eff_varCov_tot %*% col_means_splines #v(wbarre)
-      #####################################################################################
-
+    # somme cummulé pondéré des expositions (sum(Xi*Bk)=Fki)
+    data_cum <- unique(data_expo_pred[mexpo$call[[4]]])
+    for (r in 1:length(colnames(B2K))) {
+      WCIE<-aggregate(data_expo_pred[[paste0("COCO", r)]] ~ data_expo_pred[[mexpo$call[[4]]]],
+                      data = data_expo_pred, FUN = sum)
+      colnames(WCIE)<-c(mexpo$call[[4]],paste0("WCIE", r)) #renommer les colonnes car aggregate ne renomme pas
+      data_cum <-  cbind(data_cum,WCIE[paste0("WCIE", r)])
     }
+  }
+  if(weightbasis=="PS"){
 
-
-
-    # calculer l'interval de confiance des effets
-
-    effect$var_eff <- sqrt(effect$var_eff)
-    colnames(effect) <- c("Time","Effect","sd")
-    effect <- as.data.frame(effect)
-
-    #calculer les IC
-    effect$conf.low <- effect$Effect - qnorm(0.975)  * (effect$sd)
-    effect$conf.high <- effect$Effect + qnorm(0.975)  * (effect$sd)
-
-
-    # calculer l'effet moyen de 0 à -T
-    # calculer l'effet moyen wbarre = 1/T+1 somme(w(u))
-    mean_effect <- 1/(nrow(effect)+1)*sum(effect[2])
-
-    # sans interaction
-    # calculer sa variance v(wbarre=(1/T somme(B(t)'))*v(teta)*(1/T somme(B(t))) confirmer qu'il n'y a pas de +1 ?
-    means_splines <- colSums(new_splines) / (nrow(effect)) #1/T+1(B(t))
-    real_mean_var_effect <- t(means_splines) %*% eff_varCov_tot %*% means_splines #v(wbarre)
-    mean_variable_effect <- sqrt(real_mean_var_effect)
-
-    # avec interaction
-
-
-    ###########################################################
-    ############ faire le graph si ok #########################
-    ###########################################################
-
-
-    ### BOX_PLOT
-
-    # Effect - Intercept
-    graph_effect <- ggplot(effect, aes(x=as.factor(Time), y=Effect, group = 1)) +
-      geom_line(color="darkgray", linewidth=1)+  # Remplace le boxplot par une ligne
-      geom_line(aes(y=conf.low), linetype="dashed", color="black") +  # Bord inférieur en pointillé
-      geom_line(aes(y=conf.high), linetype="dashed", color="black") +  # Bord supérieur en pointillé
-      geom_ribbon(aes(ymin=conf.low, ymax=conf.high), fill="gray", alpha=0.3, linetype="dashed") +  # Ajout IC en pointillé
-      theme(legend.position = "none") +
-      xlab("Years preceding the outcome") +
-      ylab("Estimate") +
-      theme_classic() +
-      theme(axis.text.x = element_text(size=6, face="bold"),
-            plot.title = element_text(size=14, face="bold"),
-            axis.title.x = element_text(size=12, face="bold"),
-            axis.title.y = element_text(size=12, face="bold")) +
-      geom_hline(yintercept=0, linetype="solid")
+    #to be develop
+  }
+  if(weightbasis=="BS"){
+    #same
 
   }
 
-  # time
-  cost<-proc.time()-ptm
+  ##############################################
+  ##### 3) Outcome model #######################
+  ##############################################
 
-  result<- list(estimate=parameters_var,
-                data.expo=WCIE[[2]],data.outcome=data_outcome,effectplot=graph_effect,
-                expositioneffect=effect,
-                mexpo=WCIE[[3]],reg.type=reg.type,mean.effect=mean_effect,
-                sd.mean.effect=mean_variable_effect,nboot = n_boot,
-                call=WCIE$call, #séparé les différentes parties du call (à faire)
-                knots.quantile=WCIE$splines.quantiles,V=var_tot,var.time=var.time,AIC=mean_AIC
-                ,loglike=mean_loglike,n=n,nb.subj.del=nb_subject_delete,
-                time.processing=cost)
+  if (reg.type=="logistic"){
+    data.outcome <- merge(data, data_cum, by=mexpo$call[[4]]) #récupère uniquement les individus utilisés dans le modèle d'exposition et également présent dans le data pour le modèle d'expo
 
-  class(result) <- "WCIE2F"
-  return(result)
+    # remplacer les expo par les variables d'exposition dans la formule
+    new_expo<-c(NULL)
+    new_expo <- paste(paste0("WCIE", seq_len(ncol(B2K))), collapse = "+") ## donne "ns1+ns2+ns3+nsi"
+
+    formdroite <- as.character(model[3]) ## la partie à droite du tilde
+    formdroitebis <- gsub("\\bWCIE\\b", paste("(", new_expo, ")"), formdroite) # remplace "expo", par "(ns1+ns2+ns3+ns4)"
+
+    new_formula <- as.formula(paste(as.character(model[2]),"~",formdroitebis))
+
+    model_outcome <- glm(new_formula,family = binomial,data = data.outcome)
+
+    # récupérer quelques statistiques pour le summary :
+
+    #log likelihood and AIC
+    AIC <- AIC(model_outcome)
+    loglike <- as.numeric(logLik(model_outcome))
+
+    # call
+    call <- (model_outcome$call)
+
+  }
+  if (reg.type=="cox"){
+    data.outcome <- merge(data, data_cum, by=mexpo$call[[4]]) #récupère uniquement les individus utilisés dans le modèle d'exposition et également présent dans le data pour le modèle d'expo
+
+    # remplacer les expo par les variables d'exposition dans la formule
+    new_expo<-c(NULL)
+    new_expo <- paste(paste0("WCIE", seq_len(ncol(B2K))), collapse = "+") ## donne "ns1+ns2+ns3+nsi"
+
+    formdroite <- as.character(model[3]) ## la partie à droite du tilde
+    formdroitebis <- gsub("\\bWCIE\\b", paste("(", new_expo, ")"), formdroite) # remplace "expo", par "(ns1+ns2+ns3+ns4)"
+
+    new_formula <- as.formula(paste(as.character(model[2]),"~",formdroitebis))
+
+    model_outcome <- coxph(new_formula,
+                           data = data.outcome)
+
+    # récupérer quelques statistiques pour le summary :
+
+    #log likelihood and AIC
+    AIC <- AIC(model_outcome)
+    loglike <- as.numeric(logLik(model_outcome))
+
+    # call
+    call <- (model_outcome$call)
+
+
+
+  }
+  return(list(model=model_outcome,data_expo=new_data, #à changer pour le dataexpo et mettre les colonnes qu'on veut
+              mexpo=mexpo, data_outcome=data.outcome,
+              call=call,splines.quantiles=quantiles,
+              boundary.quantiles=c(b5,b95),
+              AIC = AIC, loglike=loglike
+    )
+  )
 }
+
+
+
 
 
 

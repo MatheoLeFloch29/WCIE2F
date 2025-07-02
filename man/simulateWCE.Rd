@@ -20,7 +20,8 @@ simulateWCE(
   knots.vector = NULL,
   model,
   coef.wcie,
-  Xoutcome
+  Xoutcome,
+  Surv.param = NULL
 )
 }
 \arguments{
@@ -61,8 +62,8 @@ Currently, the following options are available: \code{"NS"} for natural splines 
 
 \item{model}{two-sided linear formula object for the outcome model. The response outcome is on
 the left of ~ and the covariates are separated by + on the right of ~. To include the effect of past exposure,
-you must explicitly add \code{WCIE} (or interaction terms such as \code{WCIE:sex}) to the formula.
-For example, \code{Y ~ WCIE + age + sex} or \code{Y ~ WCIE:sex + age} are valid formulas.}
+you must explicitly add \code{WCIE} to the formula.
+For example, \code{Y ~ WCIE + age + sex} are valid formulas.}
 
 \item{coef.wcie}{named list giving the parameters of the WCIE variables to
 simulate.}
@@ -70,6 +71,9 @@ simulate.}
 \item{Xoutcome}{named list giving the parameters of the intercept and the covariables in the
 logistic model to simulate de outcome variable. The list's names should match the intercept and
 covariable names used in object}
+
+\item{Surv.param}{named list giving the parameter lambda to simulate the survival time variable and
+the upper limit of the uniform distribution used to simulate censoring times. (ex. list(lambda=1,max_censoring_time=2.5))}
 }
 \value{
 \item{exposition.data}{a data frame with one line per observation and one column per variable.

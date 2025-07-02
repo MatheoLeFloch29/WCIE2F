@@ -32,13 +32,15 @@
 #' @param knots.vector Vector of internal knots for the splines (used only for splines temporal weighting function).
 #' @param model two-sided linear formula object for the outcome model. The response outcome is on
 #' the left of ~ and the covariates are separated by + on the right of ~. To include the effect of past exposure,
-#' you must explicitly add \code{WCIE} (or interaction terms such as \code{WCIE:sex}) to the formula.
-#' For example, \code{Y ~ WCIE + age + sex} or \code{Y ~ WCIE:sex + age} are valid formulas.
+#' you must explicitly add \code{WCIE} to the formula.
+#' For example, \code{Y ~ WCIE + age + sex} are valid formulas.
 #' @param coef.wcie named list giving the parameters of the WCIE variables to
 #' simulate.
 #' @param Xoutcome named list giving the parameters of the intercept and the covariables in the
 #' logistic model to simulate de outcome variable. The list's names should match the intercept and
 #' covariable names used in object
+#' @param Surv.param named list giving the parameter lambda to simulate the survival time variable and
+#'  the upper limit of the uniform distribution used to simulate censoring times. (ex. list(lambda=1,max_censoring_time=2.5))
 #'
 #'
 #'
@@ -62,10 +64,11 @@
 #'
 #' @export
 simulateWCE <- function(object ,nsim=1, seed=NULL, times,internal.step, tname, n, Xbin=NULL, Xcont=NULL
-                          ,weightbasis,reg.type,knots=NULL, knots.vector=NULL,model, coef.wcie, Xoutcome){
+                          ,weightbasis,reg.type,knots=NULL, knots.vector=NULL,model, coef.wcie, Xoutcome
+                        ,Surv.param=NULL){
 
   if(!is.null(knots)==T & !is.null(knots.vector)==T) stop("You must have to specify knots or knots.vector")
-
+  # mettre condition si reg.type=cox et si certains arguments sont manquant
 
   # parameters
   model_sigma_error <- object$best["stderr"] # sigma du modèle object
@@ -224,48 +227,141 @@ simulateWCE <- function(object ,nsim=1, seed=NULL, times,internal.step, tname, n
 
         # somme(w(u)*Xi(true)*pas)
         tmpwcie <- weights*Sim_D[, y]*step_fixe #w(u)*Xi(true)*pas
-        sommeWCIE <- tapply(tmpwcie, Sim_D[,id], sum)  #sum() par individu
+        WCIE <- tapply(tmpwcie, Sim_D[,id], sum)  #sum() par individu
 
       }
       #data_outcome$wcie <- sommeWCIE # pour verif glm
     if(reg.type=="logistic"){
-      # Récupérer les paramètres (paramètres à donner) de
-      # l'intercept et des covariables (présente dans le model d'expo)
 
-      # si pas de covariable
-      etai <- Xoutcome$intercept + sommeWCIE #ajouter le paramètre de l'intercept et la somme WCIE
+      # récupérer la formule de l'utilisateur
+      formule_outcome <- as.formula(model)
+      # regarder les covariables à utiliser
+      vars_needed <- all.vars(formule_outcome)[-1] # sans y
 
-      # récupérer les covariables à intégrer au modèle d'outcome
-      outcome_covar <- Xoutcome[names(Xoutcome) !="intercept"]
-      # si covariable faire alors ça
-      if(length(outcome_covar)>0){
+      etai <- Xoutcome$intercept # ajouter l'intercept dans un premier temps
+
+      # si WCIE alors rajouter la somme WCIE (normalement obligatoire)
+      if ("WCIE" %in% vars_needed) {
+        vars_needed <- vars_needed[vars_needed != "WCIE"]
+        etai <- Xoutcome$intercept + WCIE
+      }
+
+      # Si des covariables sont nécessaires, les ajouter
+      if (length(vars_needed) > 0) {
         # Ajouter les covariables de outcome_covar à data_outcome
         data_outcome <- merge(
           data_outcome,
-          Sim_D[!duplicated(Sim_D[[id]]), c(id, names(outcome_covar))],
+          Sim_D[!duplicated(Sim_D[[id]]), c(id, vars_needed)],
           by = id
         )
 
         # Initialiser une matrice pour stocker les produits pondérés
-        covar_names <- names(outcome_covar)
-        tmp_X <- matrix(NA, nrow = nrow(data_outcome), ncol = length(covar_names))
-        colnames(tmp_X) <- covar_names
-
+        tmp_X <- matrix(NA, nrow = nrow(data_outcome), ncol = length(vars_needed))
+        colnames(tmp_X) <- vars_needed
+        # récupérer les coef des paramètres à simuler
+        outcome_covar <- Xoutcome[names(Xoutcome) !="intercept"]
         # Boucle sur les covariables pour remplir tmp_X
-        for (i in covar_names) {
+        for (i in vars_needed) {
           tmp_X[, i] <- data_outcome[[i]] * outcome_covar[[i]]
         }
 
         etai <- etai + rowSums(tmp_X[, names(outcome_covar),drop=F])
       }
 
-      pi <- 1/(1+exp(-etai)) # probabilité prédite
+      # Calcul de la probabilité
+      pi <- 1 / (1 + exp(-etai))
 
-      # Générer une valeur binaire selon cette proba (proba pi)
-      Yobs <- rbinom(n = n, size = 1, prob = pi)
+      # Générer Y binaire
+      Yobs <- rbinom(n = nrow(data_outcome), size = 1, prob = pi)
 
-      data_outcome[,"y"] <-  Yobs # l'ajouter au dataoutcome
+      # Ajouter au jeu de données
+      data_outcome$y <- Yobs
     }
+
+    if(reg.type=="cox"){
+      # récupérer la formule de l'utilisateur
+      formule_outcome <- as.formula(model)
+      # regarder les covariables à utiliser
+      vars_needed <- all.vars(formule_outcome)[-c(1,2)] # sans y et time
+
+      #initialiser etai
+      etai <- 0
+
+      # si WCIE présent dans la formule alors ajouter à etai (normalement obligatoire)
+      if ("WCIE" %in% vars_needed) {
+        etai <- etai + WCIE
+        vars_needed <- setdiff(vars_needed, "WCIE")
+      }
+
+      # Si présence de covariables alors ajouter au calcul de etai
+      if (length(vars_needed) > 0) {
+        # Ajouter ces covariables dans data_outcome
+        data_outcome <- merge(
+          data_outcome,
+          Sim_D[!duplicated(Sim_D[[id]]), c(id, vars_needed)],
+          by = id
+        )
+
+        # Extraire les coefficients
+        outcome_covar <- Xoutcome[names(Xoutcome) != "intercept"]
+
+        # Calculer linéaire prédictif : somme des beta * X
+        tmp_X <- matrix(NA, nrow = nrow(data_outcome), ncol = length(vars_needed))
+        colnames(tmp_X) <- vars_needed
+
+        for (i in vars_needed) {
+          tmp_X[, i] <- data_outcome[[i]] * outcome_covar[[i]]
+        }
+
+        etai <- etai + rowSums(tmp_X[, names(outcome_covar), drop = FALSE])
+      }
+
+      # simulation des temps de survie
+      # paramètres
+      lambda <- Surv.param$lambda  # demander à l'utilisateur
+
+      # générer des temps T~exp()
+      rate <- lambda*exp(etai)
+
+      # durée de survie non censuré
+      T_surv <- rexp(n = n,rate = rate)
+
+      ########## partie pour determiner le b_opt pour avoir le taux de censure donné par l'utilisateur ################
+      # toute les valeurs possibles de la borne supérieur
+      # Recherche de la borne supérieure de censure qui donne ~20% de censure
+      #b_seq <- seq(0, max(t_surv), by = 0.01)
+      #p_cens <- sapply(b_seq, function(b) {
+      #  C <- runif(n, 0, b)
+      #  tobs <- pmin(t_surv, C)
+      #  delta <- as.numeric(t_surv <= C)
+      #  mean(delta == 0) # proportion censurée
+      #})
+      #cens_target <- Surv.param$perc.target# % de censure
+      # Choix de la borne optimale pour atteindre cens_target
+      #b_opt <- mean(b_seq[round(p_cens, 2) == round(cens_target, 2)])
+      #b_opt  # b_opt pour cens_target donnée par l'utilisateur
+      ################################################################################################################
+
+      if(Surv.param$censoring.type=="unif"){
+        # Génération aléatoire entre 0 et max.censoring.time suivant une loi uniforme
+        C <- runif(n, 0, Surv.param$max.censoring.time)
+      }else if(Surv.param$censoring.type=="fixe"){
+        if (is.null(Surv.param$censoring.type)) {
+          stop("Veuillez spécifier 'fixed.censoring.time' dans les paramètres.")
+        }
+        C <- rep(Surv.param$max.censoring.time, n)
+      }
+
+      # Temps observé et indicateur de censure
+      time_obs <- pmin(T_surv, C)
+      y <- as.numeric(T_surv <= C)
+
+      data_outcome <- cbind(data_outcome,
+                            time_obs,y)
+
+
+    }
+
 
 
   return(list(exposition.data = exposition_data,
