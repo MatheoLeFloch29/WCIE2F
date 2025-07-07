@@ -20,7 +20,7 @@ summary.WCEland <- function(object, ...) {
   cat("Weighted Cumulative Index Estimation (WCEland) \n")
   cat("     fitted by weighted bootstrap method \n")
   cat(" \n")
-  cat(object$call, "\n")
+  cat(paste(deparse(object$call), collapse = " "), "\n")
   cat(" \n")
   if (object$reg.type=="logistic") {
     cat("Outcome model type:", object$reg.type, "\n")

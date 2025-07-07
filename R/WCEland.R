@@ -543,7 +543,7 @@ WCEland <- function(mexpo,var.time, time.frame, weightbasis="NS", knots=NULL,kno
 
     # calculer l'effet moyen de 0 à -T
     # calculer l'effet moyen wbarre = 1/T+1 somme(w(u))
-    mean_effect <- 1/(nrow(effect)+1)*sum(effect[2])
+    mean_effect <- 1/(nrow(effect))*sum(effect[2])
 
     # sans interaction
     # calculer sa variance v(wbarre=(1/T somme(B(t)'))*v(teta)*(1/T somme(B(t))) confirmer qu'il n'y a pas de +1 ?

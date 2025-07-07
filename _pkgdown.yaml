@@ -24,18 +24,21 @@ navbar:
 reference:
   - title: Presentation
     contents:
-    - WCIE2F
+    - WCEland
   - title: Estimation
     contents:
-      - WCEland
+      - WCIE2F
       - doOneBootWCIE
   - title: Extract outputs
     contents:
-      - summary.WCIE2F
+      - summary.WCEland
   - title: Plots
     contents:
-      - plot.WCIE2F
+      - plot.WCEland
   - title: Simulation
     contents:
       - simulateWCE
+  - title: Data
+    contents:
+      - paquid
 

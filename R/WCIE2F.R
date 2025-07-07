@@ -334,7 +334,9 @@ WCIE2F <- function(mexpo,var.time, times,
     loglike <- as.numeric(logLik(model_outcome))
 
     # call
-    call <- (model_outcome$call)
+    new_model_outcome <- (model_outcome$call)
+    new_model_outcome$formula <- eval(model_outcome$call$formula)
+    call <- as.call(new_model_outcome)
 
   }
   if (reg.type=="cox"){
@@ -359,8 +361,9 @@ WCIE2F <- function(mexpo,var.time, times,
     loglike <- as.numeric(logLik(model_outcome))
 
     # call
-    call <- (model_outcome$call)
-
+    new_model_outcome <- (model_outcome$call)
+    new_model_outcome$formula <- eval(model_outcome$call$formula)
+    call <- as.call(new_model_outcome)
 
 
   }

@@ -11,6 +11,7 @@ vignette: >
 ---
 
 ```{r setup, include = FALSE}
+library(mixWCE)
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
@@ -19,14 +20,58 @@ knitr::opts_chunk$set(
 
 # Functionalities of the package
 
+The R package lcmm provides one function to estimate statistical models based on the linear mixed model theory. It includes the estimation of:
+
+
+- exposition mixed models and different type of binary outcome models (WCEland),
+
+
+The package mixWCE includes one main function: WCEland, which estimates the weighted cumulative effect of a time-varying exposure on different types of outcomes. This includes binary outcomes, time-to-event (survival) data, and conditional logistic models. A dedicated vignette describes each modeling context.
+
+For each model, maximum likelihood estimators are obtained using the default optimization algorithms provided by standard R functions such as glm or coxph, depending on the outcome type. The weighting of past exposure is modeled through a flexible basis function approach.
+
+The package also provides several post-fit functions, including summary outputs, plots of the estimated weight functions, and simulation functions to generate synthetic datasets under various scenarios.
+
+Any question or issue should be addressed on the GitHub page: https://github.com/MatheoLeFloch29/mixWCE/issues
 
 # Calls functions
 
+Each function isn't precisely introduced in the companion paper.
 
-## WCIE2F
+## WCEland
+
+This function is used to estimate the weighted cumulative effect of a time-varying exposure on different types of outcomes, including binary, survival, and conditional logistic models.
+
+```{r, eval=FALSE}
+WCEland(mexpo, var.time, time.frame, weightbasis, knots=NULL, knots.vector = NULL, data,reg.type, model, n_boot = 500)
+```
+
 
 # Dataset example
 
+## paquid subsample
+
+In the wikis, mixWCE is illutrated with paquid dataset. This is a subsample of 500 subjects from the original French prospective study Paquid. This dataset can not be used for epidemiological purposes as the subsample is not representative of the original cohort (in particular, dementia cases have been over sampled).  
+
+The data are in the longitudinal format including some variables such as 3 psychometric tests $MMSE$, $BVRT$, $IST$, the depressive symptomatology scale $CESD$ and the variables $age$, $agedem$ (age until dementia), $dem$ (boolean with 1 for dementia), $ageinit$, $CEP$ (education level) and $male$.</p>
 
 
+For visualizing the data (head of the table only):
 
+```{r,comment=''}
+head(paquid)
+```
+
+The different markers are collected at different times. In the dataset the timescale is $time$.
+
+For obtaining a quick summary of the data:
+```{r,comment=''}
+summary(paquid)
+```
+
+Some variables have missing values. This is not a problem when using mixWCE package, the missing value is replace by his true value for expositon variable and delete for outcome variable.
+
+
+## HIER2 outcome
+
+In the mixWCE examples, the HIER score is usually considered as the outcome. HIER is a score of physical dependency with four levels: 0 (no dependency), 1 (mild dependency), 2 (moderate dependency), and 3 (severe dependency). For binary models, the outcome is defined as an indicator of a moderate to severe physical dependency, i.e., a HIER score greater than or equal to 2.

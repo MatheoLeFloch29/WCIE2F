@@ -1,4 +1,5 @@
-# Estimation of the Weighted Cumulative Effect with Two-Level </span>
+# <img src="man/figures/stickers_mixWCE.png" align="right" width=130 style="margin-right: 0px;vertical-align:middle"/> <span style="font-size:38px"> Estimation of the Weighted Cumulative Effect with Two-Level </span>
+
 
 &nbsp;
 

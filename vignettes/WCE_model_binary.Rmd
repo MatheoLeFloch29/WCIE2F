@@ -1,65 +1,163 @@
 ---
-title: "Estimate weight cumulative exposure effect"
+title: "Estimate weight cumulative exposure effect for binary outcome"
 output: 
   rmarkdown::html_vignette:
     toc: true #table of content true
     toc_depth : 3
 vignette: >
-  %\VignetteIndexEntry{Estimate a latent class mixed model}
+  %\VignetteIndexEntry{Estimate weight cumulative exposure effect for binary outcome}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include = FALSE}
+library(mixWCE)
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
+
+#pkgdown::build_site()
 ```
 
+# background and definitions 
+
+## Modeling the Exposure Trajectory
+
+We assume the true continuous exposure $E_{i}^*(t)$ of subject $i$ at time $t$ follows a normal distribution with measurement noise. The underlying true exposure follows a linear mixed-effects model:
+
+$$ E_{ij}=\underbrace{X_i(t)^\top\beta + Z_{i}(t)^\top b_i}_{E_i^*(t_{ij})}+\varepsilon_{ij} $$
+
+where $X_i(t)$ is the vector of explanatory variables, $\beta$ the fixed effects,$Z_i(t)$ a subset of $X_i(t)$, and $b_i \sim N$(0,B)$ are subject-specific random effects. The time evolution is described either by a simple time function or by natural cubic splines to model more flexible variations.
+
+## Event Modeling
+
+We define the WCIE (weighted cumulative exposure) for subject $i$ as the weighted sum of the true exposure $E_{i}^*(t)$ over a time window $[-S,0]$ with unknown weights $w(t)$ and $S$ the time window exposure.
+
+This cumulative exposure is then included in a logistic model to estimate the probability that the individual is a case ($Y_i=1$):
+
+\begin{align*}
+    \text{logit}(P(Y_i=1)) &= \alpha_0 + \alpha_pX_{ip} + {WCIE_i}\\
+    &= \alpha_0 + \alpha_pX_{ip} + {\sum_{t=-S}^{0} E_i(t) \times w(t)}
+    \label{eq7}
+\end{align*}
+
+
+where $\alpha_0$ is the intercept, $\alpha_p$ are the coefficients of covariates $X_{ip}$, and the sum represents the weighted cumulative effect of exposure.
+
+## Modeling the Association
+
+To estimate the exposure effects in the model, we first need to estimate the weight function $w(t)$. This function is expressed as a linear combination of basis functions:
+
+$$w(t)= \sum_{k=0}^{K} \delta_k B_k(t)$$
+
+where the coefficients $\delta_k$ are to be estimated and $B(k)$ a basis functions.
+
+Estimating the exposure effects means estimating the coefficients $\delta_k$, which weight the contributions of each basis function in the logistic model.
 
 This vignette illustrates how to estimate  weighted cumulative effect of a longitudinal exposition following the methodology described in Wagner et al. (2021 - https://doi.org/10.1186/s12874-021-01403-w). 
 
-```{r, results='hide',message=FALSE,warning=FALSE, echo=FALSE}
-# load("models_IRT.RData")
+# Exemple for paquid data
+
+In this example, we study the occurrence of physical dependency defined by the HIER2 score from the Paquid dataset. HIER is a physical dependency score with four levels: 0 (no dependency), 1 (mild dependency), 2 (moderate dependency), and 3 (severe dependency). For binary models, the outcome is defined as an indicator of moderate to severe dependency, i.e., a HIER score greater than or equal to 2. We investigate the effects of an exposure corresponding to the Mini-Mental State Examination (MMSE) score, a psychometric test of global cognitive functioning scored as an integer between 0 and 30. The sample includes elderly individuals followed over time, with adjustments possible for covariates. Interactions are not considered here.
+
+## paquid subset
+
+### exposition variable: normalized MMSE
+
+As the MMSE score has a highly skewed distribution, we use its normalized version, which is easily obtained using the NormPsy package. This normalization is necessary to satisfy the assumptions of the linear mixed model used to describe the exposure trajectory, particularly the assumption that the residuals (and random effects) follow a normal distribution.
+
+```{r}
+library(NormPsy)
+paquid$normMMSE <- normMMSE(paquid$MMSE)
 ```
-# Importation
 
-The longitudinal IRT model is estimated via WCIE2F function of mixWCE R package. 
-The following libraries are used in this vignette:
 
-```{r,message=F}
-library(lcmm)
-library(ggplot2)
-library(splines)
-library(survival)
+### split dataset
+
+In order to obtain our two time windows, we split the dataset in two sub dataset. The first one corrsponding to the outcome windows and keep one line per subject when he developp at least a moderate physical dependency (HIER >= 2), this event appear at $t=0$. The second dataset corresponding to the entire exposition window before this event $t=[-S,0]$.
+
+```{r}
 library(dplyr)
+paquid_outcome <- paquid %>% 
+  arrange(ID, time) %>%                # ordre chronologique
+  group_by(ID) %>% 
+  slice(
+    if (any(HIER2 == 1, na.rm = TRUE)) {
+      which(HIER2 == 1)[1]             # 1re visite avec HIER2 == 1
+    } else {
+      n()                               # sinon, dernière visite
+    }
+  ) %>% 
+  ungroup()
+
+paquid_expo <- paquid %>%
+  arrange(ID, time) %>%
+  group_by(ID) %>%
+  mutate(
+    time_outcome = if (any(HIER2 == 1, na.rm = TRUE)) {
+      time[which(HIER2 == 1)[1]]  # 1er moment HIER2 == 1
+    } else {
+      max(time, na.rm = TRUE)     # sinon dernière visite
+    }
+  ) %>%
+  filter(time <= time_outcome) %>%
+  mutate(time_expo=time-time_outcome) %>% 
+  ungroup()
+
 ```
 
 
-
-# Dataset (à revoir)
-
-The illustration is on a simulated dataset that mimics the PREDIALA study described and analyzed in Proust-Lima et al. (2021). The dataset is called simdataIRT. It contains the following information:
-
-- grp: group with 0=dialyzed and 1=preemptive
-- sex: sex with 0=woman and 1=man
-- age: age at entry in the cohort
-- hads_2 ... hads_14 : 7 items of HADS measuring depression
-- ID: identification number of the patient
-- time: time of measurement (months since entry on the waiting list)
-- time_entry: time on the waiting list at entry in the cohort (in months)
+### Description of the sample
 
 ```{r}
-str(simdataHADS)
-```
 
-## Description of the sample
-
-```{r}
-demo <- simdataHADS %>% group_by(ID) %>% arrange(time) %>%
+expo <- paquid_expo %>% group_by(ID) %>% arrange(time) %>%
   filter(row_number()==1)
-summary(demo)
+summary(expo)
+
+summary(paquid_outcome)
+
 ```
 
+## Models considerd
+
+First, We consider the following linear mixed model, where $i$
+is the subject and $j$ the repeated measurement:
+
+$$ normMMSE_{ij}= \beta_0+\beta_1time_{ij}+\beta_2sex_{i} + b_{0i}+b_{1i}time_{ij}+\varepsilon_{ij} $$
+Where $b_{i}\sim \mathcal(N)(0,$B) and $\varepsilon_{ij}\sim N(0,\sigma^2)$
+
+Next, we model the occurrence of physical dependency (HIER2 ≥ 2) using a weighted cumulative exposure (WCE) logistic regression. The model is written as:
+
+$$ logit(P(HIER_i=1))=\alpha_0+\alpha_1sex_i+\sum_{k=0}^K\delta_k\sum_{t=-S}^0B_k(t)\times normMMSE_i^*(t)$$
+
+
+where $B_k(t)$ is a basis of natural cubic splines with $K-1$ chosen internal knots.
+
+
+## Estimate the exposure effect
+
+```{r, message=F}
+library(lcmm)
+m_expo<-hlme(normMMSE~time_expo+male,random = ~time_expo,subject = "ID",data = paquid_expo,returndata = T)
+
+
+m_outcome<-WCEland(mexpo = m_expo,var.time = "time_expo",time.frame = c(-10,0,1),weightbasis = "NS"
+              ,knots.vector = list(knots=NULL, boundary.knots=c(-9,-1)),knots = NULL,data = paquid_outcome
+              ,reg.type = "logistic",model = HIER2~male+WCIE,n_boot = 5)
+
+m_outcome$call
+
+```
+
+## Print the result
+
+```{r}
+
+summary(m_outcome)
+
+paste(deparse(m_outcome$call), collapse = " ")
+
+```
 
