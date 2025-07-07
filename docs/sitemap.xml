@@ -1,0 +1,21 @@
+<urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
+<url><loc>/404.html</loc></url>
+<url><loc>/articles/index.html</loc></url>
+<url><loc>/articles/mixWCE.html</loc></url>
+<url><loc>/articles/WCE_model_binary.html</loc></url>
+<url><loc>/articles/WCE_model_conditional_binary.html</loc></url>
+<url><loc>/articles/WCE_model_survival.html</loc></url>
+<url><loc>/authors.html</loc></url>
+<url><loc>/index.html</loc></url>
+<url><loc>/reference/doOneBootWCIE.html</loc></url>
+<url><loc>/reference/index.html</loc></url>
+<url><loc>/reference/paquid.html</loc></url>
+<url><loc>/reference/plot.WCEland.html</loc></url>
+<url><loc>/reference/plot.WCIE2F.html</loc></url>
+<url><loc>/reference/simulateWCE.html</loc></url>
+<url><loc>/reference/summary.WCEland.html</loc></url>
+<url><loc>/reference/summary.WCIE2F.html</loc></url>
+<url><loc>/reference/WCEland.html</loc></url>
+<url><loc>/reference/WCIE2F.html</loc></url>
+</urlset>
+
