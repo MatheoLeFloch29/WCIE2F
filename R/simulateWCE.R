@@ -55,7 +55,7 @@
 #'
 #' @import lcmm
 #' @import ggplot2
-#' @importFrom stats rnorm rbinom runif plogis median simulate
+#' @importFrom stats rnorm rbinom runif plogis median simulate rexp
 #'
 #'
 #'
@@ -367,7 +367,8 @@ simulateWCE <- function(object ,nsim=1, seed=NULL, times,internal.step, tname, n
   return(list(exposition.data = exposition_data,
               outcome.data=data_outcome,
               weight.plot=weight_graph,
-              weight.data=df_to_out))
+              weight.data=df_to_out
+              ))
 }
 
 ## glm(y ~ wcie, data=data_outcome) # -> le coef pour wcie devrait etre egal a 1, et intercept = Xlogisyic$interceot

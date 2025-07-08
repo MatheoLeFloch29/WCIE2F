@@ -27,5 +27,6 @@ URL: https://github.com/MatheoLeFloch29/wciepackage
 BugReports: https://github.com/MatheoLeFloch29/wciepackage/issues
 Suggests: 
     knitr,
-    rmarkdown
+    rmarkdown,
+    NormPsy
 VignetteBuilder: knitr
