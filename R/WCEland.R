@@ -192,8 +192,8 @@ WCEland <- function(mexpo,var.time, time.frame, weightbasis="NS", knots=NULL,kno
   if(!inherits(mexpo,"hlme")) stop("The argument mexpo must be a hlme object")
   if (is.null(data)==T) stop("the argument outcome_data is missing")
   if (is.null(model)==T) stop("the argument outcomeformula is missing")
-  #if (timerange[1]<min(mexpo$data[var.time])) stop("the argument timerange must be equal or higher then the minimum time value")
-  #if (timerange[2]>max(mexpo$data[var.time])) stop("the argument timerange must be equal or less then the maximum time value")
+  if (abs(time.frame[1])>abs(floor(min(mexpo$data[var.time])))) stop("The first time.frame argument must be equal to or greater than the minimum time value, rounded down to the nearest integer.")
+  if (abs(time.frame[2])<abs(ceiling(max(mexpo$data[var.time])))) stop("the second argument time.frame must be equal or less then the maximum time value, rounded up to the nearest integer")
   if(is.null(knots)==T&is.null(knots.vector)==T) stop("You must have to specify knots or knots.vector")
 
 
@@ -514,18 +514,6 @@ WCEland <- function(mexpo,var.time, time.frame, weightbasis="NS", knots=NULL,kno
         effect$var_eff[z] <- t(new_matheo[z,]) %*% eff_varCov_tot %*% new_matheo[z,]
       }
 
-
-      ######################## à verifier mais semble ok ##################################
-      # calculer l'effet moyen de 0 à -T
-      # calculer l'effet moyen wbarre = 1/T+1 somme(w(u))
-      real_mean_effect <- 1/(nrow(effect)+1)*sum(effect[2])
-
-      # sans interaction
-      # calculer sa variance v(wbarre=(1/T+1 somme(B(t)'))*v(teta)*(1/T+1 somme(B(t)))
-      col_means_splines <- colSums(new_matheo) / (nrow(effect)+1) #1/T+1(B(t))
-      real_mean_var_effect <- t(col_means_splines) %*% eff_varCov_tot %*% col_means_splines #v(wbarre)
-      #####################################################################################
-
     }
 
 
@@ -543,12 +531,12 @@ WCEland <- function(mexpo,var.time, time.frame, weightbasis="NS", knots=NULL,kno
 
     # calculer l'effet moyen de 0 à -T
     # calculer l'effet moyen wbarre = 1/T+1 somme(w(u))
-    mean_effect <- 1/(nrow(effect)+1)*sum(effect[2])
+    mean_effect <- mean(effect[2])
     #mean_effect <- mean(effect[[2]], na.rm = T)
 
     # sans interaction
     # calculer sa variance v(wbarre=(1/T somme(B(t)'))*v(teta)*(1/T somme(B(t))) confirmer qu'il n'y a pas de +1 ?
-    means_splines <- colSums(new_splines) / (nrow(effect)+1) #1/T+1(B(t))
+    means_splines <- mean(new_splines) #1/T+1(B(t))
     #means_splines <- apply(new_splines, 2, function(x) mean(x))
     real_mean_var_effect <- t(means_splines) %*% eff_varCov_tot %*% means_splines #v(wbarre)
     mean_variable_effect <- sqrt(real_mean_var_effect)
@@ -570,7 +558,7 @@ WCEland <- function(mexpo,var.time, time.frame, weightbasis="NS", knots=NULL,kno
       geom_line(aes(y=conf.high), linetype="dashed", color="black") +  # Bord supérieur en pointillé
       geom_ribbon(aes(ymin=conf.low, ymax=conf.high), fill="gray", alpha=0.3, linetype="dashed") +  # Ajout IC en pointillé
       theme(legend.position = "none") +
-      xlab("Years preceding the outcome") +
+      xlab("Time preceding landmark") +
       ylab("Estimate") +
       theme_classic() +
       theme(axis.text.x = element_text(size=6, face="bold"),

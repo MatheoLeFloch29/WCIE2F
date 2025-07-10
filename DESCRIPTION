@@ -1,6 +1,6 @@
 Package: mixWCE
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Weighted Cumulative Effect model with Two-Level Bootstrap
 Version: 0.1.0
 Authors@R: c(
     person(
@@ -23,8 +23,8 @@ Imports:
     splines,
     lcmm,
     survival
-URL: https://github.com/MatheoLeFloch29/wciepackage
-BugReports: https://github.com/MatheoLeFloch29/wciepackage/issues
+URL: https://github.com/MatheoLeFloch29/mixWCE
+BugReports: https://github.com/MatheoLeFloch29/mixWCE/issues
 Suggests: 
     knitr,
     rmarkdown,

@@ -22,7 +22,7 @@ summary.WCEland <- function(object, ...) {
   cat(" \n")
   cat(paste(deparse(object$call), collapse = " "), "\n")
   cat(" \n")
-  if (object$reg.type=="logistic") {
+  if (object$reg.type=="logistic"|object$reg.type=="cox") {
     cat("Outcome model type:", object$reg.type, "\n")
     cat(" \n")
     cat("Statistical Model:", "\n")
@@ -57,10 +57,28 @@ summary.WCEland <- function(object, ...) {
     cat(" \n")
     print(object$V)
     cat(" \n")
+    cat(" \n")
     cat("Summary of weighted cumulative exposure effect:\n")
-    cat("     Mean effect:", sprintf("%.4f", object$mean.effect), "\n")
-    cat("     Se of effect:", sprintf("%.4f", object$sd.mean.effect), "\n")
+    cat(" \n")
+    cat("Weighted cumulative exposure effect per time observation:\n")
+    cat(" \n")
 
+    effects <- object$expositioneffect[,-c(4:5)]
+    rownames(effects) <- NULL
+    colnames(effects) <- c("Time","Effect", "Se")
+    effects$Wald <- effects$Effect / (effects$Se)
+    effects$`p-value` <- 2 * (1 - pnorm(abs(effects$Effect / (effects$Se))))
+    effects$Effect <- format(round(effects$Effect,5),scientific=FALSE)
+    effects$Se <- format(round(effects$Se,5),scientific=FALSE)
+    effects$Wald <- format(round(effects$Wald,3),scientific=FALSE)
+    effects$`p-value` <- format(round(effects$`p-value`,5),scientific=FALSE)
+    print(effects, row.names = TRUE)
+
+    cat(" \n")
+    cat("     Mean effect:", sprintf("%.5f", object$mean.effect), "\n")
+    cat("     Se of effect:", sprintf("%.5f", object$sd.mean.effect), "\n")
+    cat("     Wald:", sprintf("%.3f", object$mean.effect / (object$sd.mean.effect)), "\n")
+    cat("     p-value:", sprintf("%.5f", 2 * (1 - pnorm(abs(object$mean.effect / (object$sd.mean.effect))))), "\n")
 
   }
   invisible(object)

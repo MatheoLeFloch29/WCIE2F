@@ -136,28 +136,75 @@ $$ logit(P(HIER_i=1))=\alpha_0+\alpha_1sex_i+\sum_{k=0}^K\delta_k\sum_{t=-S}^0B_
 where $B_k(t)$ is a basis of natural cubic splines with $K-1$ chosen internal knots.
 
 
-## Estimate the exposure effect
+## Estimate the exposure effect with 0 knots
+
+To begin, we need to fit a linear mixed-effects exposure model using the $hlme$ function from the $lcmm$ package. For the package to work correctly later (e.g., in WCEland), it's important to model the time variable using flexible time functions such as natural cubic splines.
+In our case, we chose to use natural splines with 4 internal knots. The number of internal knots was selected based on the Akaike Information Criterion (AIC) from different mixed linear models.
 
 ```{r, message=F}
 library(lcmm)
-m_expo<-hlme(normMMSE~time_expo+male,random = ~time_expo,subject = "ID",data = paquid_expo,returndata = T)
+m_expo<-hlme(normMMSE~ns(time_expo, knots = c(-16,-12,-8,-4),Boundary.knots = c(-20,-0))+male,
+             random = ~ns(time_expo, knots = c(-16,-12,-8,-4),Boundary.knots = c(-20,-0)),
+             subject = "ID",data = paquid_expo,returndata = T)
 
-
-m_outcome<-WCEland(mexpo = m_expo,var.time = "time_expo",time.frame = c(-10,0,1),weightbasis = "NS"
-              ,knots.vector = list(knots=NULL, boundary.knots=c(-9,-1)),knots = NULL,data = paquid_outcome
-              ,reg.type = "logistic",model = HIER2~male+WCIE,n_boot = 5)
-
-m_outcome$call
+m_outcome<-WCEland(mexpo = m_expo,var.time = "time_expo",time.frame = c(-20,0,1),weightbasis = "NS"
+              ,knots.vector = list(knots=NULL, boundary.knots=c(-20,-0)),data = paquid_outcome
+              ,reg.type = "logistic",model = HIER2~male+WCIE,n_boot = 20)
 
 ```
 
-## Print the result
+## Estimate the exposure effect with more than 0 knots
+
+Similarly, the number of internal knots used to estimate the exposure effect (i.e., the weighting function) in the outcome model is also selected based on the Akaike Information Criterion (AIC).
+We compare several models with different knot configurations and retain the one that provides the best fit — that is, the model with the lowest AIC — for the binary health outcome of interest.
+
+```{r, message=F}
+
+m_outcome2<-WCEland(mexpo = m_expo,var.time = "time_expo",time.frame = c(-20,0,1),weightbasis = "NS"
+              ,knots.vector = list(knots=c(-10), boundary.knots=c(-20,-0)),data = paquid_outcome
+              ,reg.type = "logistic",model = HIER2~male+WCIE,n_boot = 20)
+
+
+m_outcome3<-WCEland(mexpo = m_expo,var.time = "time_expo",time.frame = c(-20,0,1),weightbasis = "NS"
+              ,knots.vector = list(knots=c(-13,-7), boundary.knots=c(-20,-0)),data = paquid_outcome
+              ,reg.type = "logistic",model = HIER2~male+WCIE,n_boot = 20)
+
+m_outcome$AIC
+m_outcome2$AIC
+m_outcome3$AIC
+
+```
+In model selection, a lower AIC suggests a better-fitting model. Therefore, we selected the model with 0 internal knots.
+
+## Description of the WCE model
+
+### summary of the model
+
+The output above presents the full summary of the WCEland model fit. It includes:
+
+- **Parameter Estimates (bootstrap-based):** Coefficients of the outcome logistic model estimated using a weighted bootstrap approach. These include the estimated coefficients, standard errors, Wald test statistics, and p-values.
+
+- **Goodness-of-fit statistics:** Global fit metrics such as the maximum log-likelihood and the Akaike Information Criterion (AIC), which help evaluate and compare model adequacy.
+
+- **Variance-covariance matrix:** Estimated variance-covariance matrix of the model parameters, useful for inference and understanding parameter correlations.
+
+- **Weighted cumulative exposure (WCE) effect summary:** A table showing the time-specific estimated effects of past exposure on the outcome. For each lag time, the table includes the effect estimate, its standard error, the Wald statistic, and the associated p-value. This highlights how the influence of the exposure evolves over time.
+
+- **Global WCE effect summary:** Mean cumulative effect across time lags, its standard error, the overall Wald statistic, and p-value — providing a concise summary of the exposure effect over the entire time window.
 
 ```{r}
-
 summary(m_outcome)
-
-paste(deparse(m_outcome$call), collapse = " ")
-
 ```
 
+### plot the expsoition trajectory association
+
+The figure displays the estimated **weighted cumulative exposure (WCE) effect** trajectory over time. Each point on the x-axis represents a specific time lag preceding the outcome, while the y-axis shows the estimated effect of exposure at that time on the outcome.
+
+- The **solid black curve** shows the estimated time-varying exposure effect.
+- The **shaded area** represents the 95% confidence interval around the estimate, obtained through bootstrap replicates and by using a delta method.
+- The **horizontal line at zero** helps visualize whether the estimated effect is statistically different from no effect.
+
+```{r}
+plot(m_outcome)
+```
+This plot displays the estimated contribution of past exposure to the **log-odds** of experiencing the outcome, assuming exposure levels at all other time points are held constant.
