@@ -143,6 +143,9 @@ In our case, we chose to use natural splines with 4 internal knots. The number o
 
 ```{r, message=F}
 library(lcmm)
+library(splines)
+library(mixWCE)
+library(ggplot2)
 m_expo<-hlme(normMMSE~ns(time_expo, knots = c(-16,-12,-8,-4),Boundary.knots = c(-20,-0))+male,
              random = ~ns(time_expo, knots = c(-16,-12,-8,-4),Boundary.knots = c(-20,-0)),
              subject = "ID",data = paquid_expo,returndata = T)

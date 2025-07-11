@@ -263,7 +263,11 @@ WCEland <- function(mexpo,var.time, time.frame, weightbasis="NS", knots=NULL,kno
   ## Intra-individual variability
   var_intra <- Reduce("+",lapply(boot_results, function(x) x[[2]]))/n_boot
 
-  ## Inter-individual variability (formule pour bootsrap de gelman rubin)
+  # Step 1: Transpose pour avoir les lignes comme les bootstrap samples
+  # boot_est = p x B → t(boot_est) = B x p
+  #var_intra <- cov(t(boot_est))
+
+  ## Inter-individual variability (formule pour bootsrap de rubin)
   #(M+1)/(M(M-1))sum(teta-mean(teta)²)
   mean_boot_est <- apply(boot_est, 1, function(x) mean(x))
 
@@ -274,7 +278,6 @@ WCEland <- function(mexpo,var.time, time.frame, weightbasis="NS", knots=NULL,kno
   var_inter <- ((n_boot + 1)/(n_boot*(n_boot-1)))*somme_var_var #applique le (M+1)/(M(M-1))
   rownames(var_inter)<-colnames(var_intra)
 
-  #essayer avec le M-1/M pour voir
 
   #######################################################
   ########## end bootstrap ##############################
@@ -531,12 +534,12 @@ WCEland <- function(mexpo,var.time, time.frame, weightbasis="NS", knots=NULL,kno
 
     # calculer l'effet moyen de 0 à -T
     # calculer l'effet moyen wbarre = 1/T+1 somme(w(u))
-    mean_effect <- mean(effect[2])
+    mean_effect <- mean(effect$Effect)
     #mean_effect <- mean(effect[[2]], na.rm = T)
 
     # sans interaction
     # calculer sa variance v(wbarre=(1/T somme(B(t)'))*v(teta)*(1/T somme(B(t))) confirmer qu'il n'y a pas de +1 ?
-    means_splines <- mean(new_splines) #1/T+1(B(t))
+    means_splines <- apply(new_splines,2,FUN = mean)  #1/T+1(B(t))
     #means_splines <- apply(new_splines, 2, function(x) mean(x))
     real_mean_var_effect <- t(means_splines) %*% eff_varCov_tot %*% means_splines #v(wbarre)
     mean_variable_effect <- sqrt(real_mean_var_effect)

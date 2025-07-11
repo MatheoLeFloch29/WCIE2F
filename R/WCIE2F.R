@@ -364,9 +364,35 @@ WCIE2F <- function(mexpo,var.time, times,
     new_model_outcome <- (model_outcome$call)
     new_model_outcome$formula <- eval(model_outcome$call$formula)
     call <- as.call(new_model_outcome)
-
-
   }
+
+  if (reg.type=="logistic.cond"){
+    data.outcome <- merge(data, data_cum, by=mexpo$call[[4]]) #récupère uniquement les individus utilisés dans le modèle d'exposition et également présent dans le data pour le modèle d'expo
+
+    # remplacer les expo par les variables d'exposition dans la formule
+    new_expo<-c(NULL)
+    new_expo <- paste(paste0("WCIE", seq_len(ncol(B2K))), collapse = "+") ## donne "ns1+ns2+ns3+nsi"
+
+    formdroite <- as.character(model[3]) ## la partie à droite du tilde
+    formdroitebis <- gsub("\\bWCIE\\b", paste("(", new_expo, ")"), formdroite) # remplace "expo", par "(ns1+ns2+ns3+ns4)"
+
+    new_formula <- as.formula(paste(as.character(model[2]),"~",formdroitebis))
+
+    model_outcome <- clogit(new_formula,
+                           data = data.outcome)
+
+    # récupérer quelques statistiques pour le summary :
+
+    #log likelihood and AIC
+    AIC <- AIC(model_outcome)
+    loglike <- as.numeric(logLik(model_outcome))
+
+    # call
+    new_model_outcome <- (model_outcome$call)
+    new_model_outcome$formula <- eval(model_outcome$call$formula)
+    call <- as.call(new_model_outcome)
+  }
+
   return(list(model=model_outcome,data_expo=new_data, #à changer pour le dataexpo et mettre les colonnes qu'on veut
               mexpo=mexpo, data_outcome=data.outcome,
               call=call,splines.quantiles=quantiles,
