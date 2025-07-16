@@ -132,79 +132,36 @@ is the subject and $j$ the repeated measurement:
 $$ normMMSE_{ij}= \beta_0+\beta_1time_{ij}+\beta_2sex_{i} + b_{0i}+b_{1i}time_{ij}+\varepsilon_{ij} $$
 Where $b_{i}\sim \mathcal(N)(0,$B) and $\varepsilon_{ij}\sim N(0,\sigma^2)$
 
-Next, we model the occurrence of physical dependency (HIER2 ≥ 2) using a weighted cumulative exposure (WCE) logistic regression. The model is written as:
+Next, we model the occurrence of physical dependency (HIER2 ≥ 2) using a logistic regression including a weighted cumulative exposure (WCE) term to account for the time-dependent influence of cognitive performance. The model is written as:
 
-$$ logit(P(HIER_i=1))=\alpha_0+\alpha_1sex_i+\sum_{k=0}^K\delta_k\sum_{t=-S}^0B_k(t)\times normMMSE_i^*(t)$$
+$$ logit(P(HIER_i=1))=\alpha_0+\alpha_1sex_i+\sum_{k=0}^1\delta_k\sum_{t=-10}^0B_k(t)\times normMMSE_i^*(t)$$
 
 
-where $B_k(t)$ is a basis of natural cubic splines with $K-1$ chosen internal knots.
+where $B_k(t)$ is a basis of natural cubic splines with $0$ chosen internal knots.
 
 
 ## Estimate the exposure effect with 0 knots
 
-To begin, we need to fit a linear mixed-effects exposure model using the $hlme$ function from the $lcmm$ package. For the package to work correctly later (e.g., in WCEland), it's important to model the time variable using flexible time functions such as natural cubic splines.
-In our case, we chose to use natural splines with 4 internal knots. The number of internal knots was selected based on the Akaike Information Criterion (AIC) from different mixed linear models.
+To begin, we need to fit a linear mixed-effects exposure model using the $hlme$ function from the $lcmm$ package. 
+In the second step, we reuse the linear mixed-effects model fitted in the exposure stage to estimate the time-varying effect of the exposure on the probability of physical dependency. Specifically, we apply the $WCEland$ function to combine the exposure model with a logistic regression framework, incorporating a weighted cumulative exposure (WCE) structure. This allows us to capture how past cognitive performance influences the risk of dependency over time.
+To conclude, we chose to use a natural spline basis with no internal knots (i.e., a linear effect over time) and performed 10 bootstrap replications to obtain bias-corrected variance estimates for the weighted cumulative exposure effects. The number of bootstrap samples was intentionally limited to 10 to reduce computation time during this illustration, although a larger number of replications would be recommended in practice for more stable variance estimation.
 
 ```{r, message=F}
 library(lcmm)
 library(splines)
 library(mixWCE)
 library(ggplot2)
-m_expo<-hlme(normMMSE~ns(time2, knots = c(-16,-12,-8,-4),Boundary.knots = c(-19,-1))+male,
-             random = ~ns(time2, knots = c(-16,-12,-8,-4),Boundary.knots = c(-19,-1)),
-             subject = "ID",data = paquid_expo,returndata = T)
 
-m_expo2 <- hlme(normMMSE~ns(time2, knots = c(-15,-10,-5),Boundary.knots = c(-19,-1))+male,
-             random = ~ns(time2, knots = c(-15,-10,-5),Boundary.knots = c(-19,-1)),
-             subject = "ID",data = paquid_expo,returndata = T)
-
-m_expo3 <- hlme(normMMSE~ns(time2, knots = c(-13,-7),Boundary.knots = c(-19,-1))+male,
-             random = ~ns(time2, knots = c(-13,-7),Boundary.knots = c(-19,-1)),
-             subject = "ID",data = paquid_expo,returndata = T)
-
-m_expo4 <- hlme(normMMSE~ns(time2, knots = c(-10),Boundary.knots = c(-19,-1))+male,
-             random = ~ns(time2, knots = c(-10),Boundary.knots = c(-19,-1)),
-             subject = "ID",data = paquid_expo,returndata = T)
-
-m_expo5 <- hlme(normMMSE~time2+male,
+m_expo <- hlme(normMMSE~time2+male,
              random = ~time2,
              subject = "ID",data = paquid_expo,returndata = T)
 
-m_expo$AIC
-m_expo2$AIC
-m_expo3$AIC
-m_expo4$AIC
-
-m_outcome<-WCEland(mexpo = m_expo4,var.time = "time2",time.frame = c(-10,0,1),weightbasis = "NS"
-              ,knots.vector = list(knots=NULL, boundary.knots=c(-19,-1)),data = paquid_outcome
+m_outcome<-WCEland(mexpo = m_expo,var.time = "time2",time.frame = c(-10,0,1),weightbasis = "NS"
+              ,knots = 0,data = paquid_outcome
               ,reg.type = "logistic",model = HIER2~male+WCIE,n_boot = 10)
 
 
-
 ```
-
-## Estimate the exposure effect with more than 0 knots
-
-Similarly, the number of internal knots used to estimate the exposure effect (i.e., the weighting function) in the outcome model is also selected based on the Akaike Information Criterion (AIC).
-We compare several models with different knot configurations and retain the one that provides the best fit — that is, the model with the lowest AIC — for the binary health outcome of interest.
-
-```{r, message=F}
-
-m_outcome2<-WCEland(mexpo = m_expo4,var.time = "time2",time.frame = c(-10,0,1),weightbasis = "NS"
-              ,knots.vector = list(knots=c(-10), boundary.knots=c(-19,-1)),data = paquid_outcome
-              ,reg.type = "logistic",model = HIER2~male+WCIE,n_boot = 15)
-
-
-m_outcome3<-WCEland(mexpo = m_expo4,var.time = "time2",time.frame = c(-10,0,1),weightbasis = "NS"
-              ,knots.vector = list(knots=c(-13,-7), boundary.knots=c(-19,-1)),data = paquid_outcome
-              ,reg.type = "logistic",model = HIER2~male+WCIE,n_boot = 15)
-
-m_outcome$AIC
-m_outcome2$AIC
-m_outcome3$AIC
-
-```
-In model selection, a lower AIC suggests a better-fitting model. Therefore, we selected the model with 0 internal knots.
 
 ## Description of the WCE model
 
@@ -239,3 +196,33 @@ plot(m_outcome)
 ```
 
 This plot displays the estimated contribution of past exposure to the **log-odds** of experiencing the outcome, assuming exposure levels at all other time points are held constant.
+
+## Estimate the exposure effect with more than 0 knots
+
+In order to use more than one internal knot in the $WCEland$ function, the time-dependent exposure must first be modeled using flexible functions of time. In this example, we use natural cubic splines to model the time trajectory of the exposure in the $hlme$ function, which allows for greater flexibility and consistency with the spline basis used in the weighted cumulative exposure framework.
+
+```{r, message=F}
+
+m_expo2 <- hlme(normMMSE~ns(time2,knots = c(-10),Boundary.knots = c(-19,-1))+male,
+             random = ~ns(time2,knots = c(-10),Boundary.knots = c(-19,-1)),
+             subject = "ID",data = paquid_expo,returndata = T)
+
+m_expo3 <- hlme(normMMSE~ns(time2,knots = c(-13,-7),Boundary.knots = c(-19,-1))+male,
+             random = ~ns(time2,knots = c(-13,-7),Boundary.knots = c(-19,-1)),
+             subject = "ID",data = paquid_expo,returndata = T)
+
+m_expo4 <- hlme(normMMSE~ns(time2,knots = c(-16,-12,-8,-4),Boundary.knots = c(-19,-1))+male,
+             random = ~ns(time2,knots = c(-16,-12,-8,-4),Boundary.knots = c(-19,-1)),
+             subject = "ID",data = paquid_expo,returndata = T)
+
+m_expo2$AIC
+m_expo3$AIC
+m_expo4$AIC
+
+m_outcome2 <- WCEland(mexpo = m_expo2,var.time = "time2",time.frame = c(-10,0,1),weightbasis = "NS"
+              ,knots = 1,data = paquid_outcome
+              ,reg.type = "logistic",model = HIER2~male+WCIE,n_boot = 10)
+
+
+```
+In model selection, a lower AIC suggests a better-fitting model. Therefore, we selected the linear mixed model with 1 internal knots.
