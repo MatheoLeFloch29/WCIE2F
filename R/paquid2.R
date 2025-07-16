@@ -1,6 +1,6 @@
-#' paquid Dataset
+#' paquid2 Dataset
 #'
-#' This dataset contains paquid data
+#' This dataset contains paquid2 data
 #' including time-dependent exposures and an outcome.
 #'
 #' @format A data frame with 2250 observations over 500 subjects and 12 variable:
@@ -18,7 +18,7 @@
 #'   \item{CEP}{binary indicator of educational level (CEP=1 for subjects who graduated from primary school; CEP=0 otherwise)}
 #'   \item{male}{binary indicator for gender (male=1 for men; male=0 for women)}
 #'   \item{HIER2}{Indicator of an HIER score >= 2}
-#'   \item{time}{Time before the inclusion date (year)}
+#'   \item{time}{Time of follow up (year)}
 #' }
-#' @usage data(paquid)
-"paquid"
+#' @usage data(paquid2)
+"paquid2"

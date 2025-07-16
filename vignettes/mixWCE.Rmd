@@ -5,7 +5,7 @@ output:
     toc: true #table of content true
     toc_depth : 3
 vignette: >
-  %\VignetteIndexEntry{Estimate a latent class mixed model}
+  %\VignetteIndexEntry{Description of mixWCE package}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -59,14 +59,14 @@ The data are in the longitudinal format including some variables such as 3 psych
 For visualizing the data (head of the table only):
 
 ```{r,comment=''}
-head(paquid)
+head(paquid2)
 ```
 
 The different markers are collected at different times. In the dataset the timescale is $time$.
 
 For obtaining a quick summary of the data:
 ```{r,comment=''}
-summary(paquid)
+summary(paquid2)
 ```
 
 Some variables have missing values. This is not a problem when using mixWCE package, the missing value is replace by his true value for expositon variable and delete for outcome variable.

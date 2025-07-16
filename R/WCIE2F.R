@@ -110,7 +110,7 @@
 #' @importFrom splines ns
 #' @importFrom stats glm quantile aggregate
 #' @importFrom lcmm estimates VarCov predictY
-#' @importFrom survival coxph Surv
+#' @importFrom survival coxph Surv clogit
 #' @author Encore un giga beau gosse
 #'
 #' @seealso \code{\link{WCIE2F}}

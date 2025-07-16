@@ -170,7 +170,7 @@
 #'
 #' @seealso
 #' \code{\link{summary.WCEland}}
-#' \code{\link{WCEland}}
+#' \code{\link{WCIE2F}}
 #' \code{\link{doOneBootWCIE}}
 #'
 #'
@@ -260,12 +260,12 @@ WCEland <- function(mexpo,var.time, time.frame, weightbasis="NS", knots=NULL,kno
   # parameters mean for n_boot bootstrap
   boot_est <- sapply(boot_results, function(x) x[[1]])
   # reprendre ici et faire mean
+
+
+
   ## Intra-individual variability
   var_intra <- Reduce("+",lapply(boot_results, function(x) x[[2]]))/n_boot
 
-  # Step 1: Transpose pour avoir les lignes comme les bootstrap samples
-  # boot_est = p x B → t(boot_est) = B x p
-  #var_intra <- cov(t(boot_est))
 
   ## Inter-individual variability (formule pour bootsrap de rubin)
   #(M+1)/(M(M-1))sum(teta-mean(teta)²)
@@ -365,6 +365,7 @@ WCEland <- function(mexpo,var.time, time.frame, weightbasis="NS", knots=NULL,kno
 
     # Calculer l'effet total avec une boucle
     effect <- data.frame(time=data_splines,eff_expo=0)
+
     effect <- effect %>% arrange(effect[1])
     # si il y a pas d'intéraction - faire juste une boucle sur les WCIE
     for (s in 1:dim(new_splines)[2]){
@@ -537,14 +538,71 @@ WCEland <- function(mexpo,var.time, time.frame, weightbasis="NS", knots=NULL,kno
     mean_effect <- mean(effect$Effect)
     #mean_effect <- mean(effect[[2]], na.rm = T)
 
-    # sans interaction
-    # calculer sa variance v(wbarre=(1/T somme(B(t)'))*v(teta)*(1/T somme(B(t))) confirmer qu'il n'y a pas de +1 ?
-    means_splines <- apply(new_splines,2,FUN = mean)  #1/T+1(B(t))
-    #means_splines <- apply(new_splines, 2, function(x) mean(x))
-    real_mean_var_effect <- t(means_splines) %*% eff_varCov_tot %*% means_splines #v(wbarre)
-    mean_variable_effect <- sqrt(real_mean_var_effect)
+    #################################################################################
+    ############# calcul de la variance de l'effet moyen ############################
+    #################################################################################
 
-    # avec interaction
+    # si pas d'interaction
+    if (length(var)==0) {
+
+    means_splines <- apply(new_splines,2,FUN = mean)  #1/T+1(B(t))
+
+    # var intra de l'effet moyen par delta méthode
+    var_intra_boot <- numeric(length(boot_results))
+    for (h in 1:length(boot_results)) {
+      mat_vcov <- boot_results[[h]][2]$V  # Vcov matrix for each bootstrap sample
+      wcie_names <- grep("^WCIE", colnames(mat_vcov), value = TRUE) #keep the WCIE var
+      d <- mat_vcov[wcie_names,wcie_names] # variance parameters of wcie
+      var_intra_boot[h] <- t(means_splines) %*% d %*% (means_splines)
+    }
+    var_intra_mean_effect <- mean(var_intra_boot)
+
+
+    # var inter de l'effet moyen par formule de Rubin
+    #(M+1)/(M(M-1))sum(Xbar-mean(Xbar)²)
+
+    data_splines <- seq(from=time.frame[1],to=time.frame[2],by=time.frame[3]) # sequence de mesure dans la fenêtre choisis
+
+    ## splines recompile with the same parameters than put in the WCEland function
+    new_splines <- as.matrix(ns(unlist(data_splines),knots = WCIE$splines.quantiles,
+                                Boundary.knots = WCIE$boundary.quantiles,
+                                intercept = TRUE))
+    # renommer WCIE1:WCIEk
+    colnames(new_splines) <- paste0("WCIE", 1:ncol(new_splines))
+
+    effect_mean <- data.frame(time=data_splines,eff_expo=0)
+    effect_list <- replicate(length(boot_results), effect_mean, simplify = FALSE)
+    # faire une première boucle sur tout les estimations bootstrap
+    for (h in 1:length(boot_results)) {
+
+    # Calculer l'effet total avec une boucle
+      effect_mean <- data.frame(time=data_splines,eff_expo=0)
+      effect_mean <- effect_mean %>% arrange(effect_mean[1])
+    # si il y a pas d'intéraction - faire juste une boucle sur les WCIE
+      for (s in 1:dim(new_splines)[2]){
+        effect_mean$eff_expo <- effect_mean$eff_expo + boot_results[[h]]$coef[paste0("WCIE",s)]*new_splines[,s]
+      }
+    effect_list[[h]]$eff_expo <- effect_mean$eff_expo
+    }
+
+    mean_effect_boot <- sapply(effect_list, function(df) mean(df$eff_expo))
+
+    somme_var_var_effect <- Reduce("+", lapply(1:ncol(boot_est), function(i) {
+      (mean_effect_boot[i] - mean(mean_effect_boot)) %*% t(mean_effect_boot[i] - mean(mean_effect_boot))# fait la somme des wbar-mean(wbar)²
+    }))
+
+    var_inter_mean_effect <- ((n_boot + 1)/(n_boot*(n_boot-1)))*somme_var_var_effect #applique le (M+1)/(M(M-1))
+    real_mean_var_effect <- var_intra_mean_effect + as.numeric(var_inter_mean_effect)
+
+
+    ###### version simple de calculer la variance de l'effet moyen par delta methode
+    #real_mean_var_effect <- t(means_splines) %*% eff_varCov_tot %*% means_splines #v(wbarre)
+    ## estimation presque similaire à celle faite par delta methode + rubin
+
+    mean_variable_effect <- sqrt(real_mean_var_effect)
+    }
+
+    # ajouter si il y a des interactions
 
 
     ###########################################################

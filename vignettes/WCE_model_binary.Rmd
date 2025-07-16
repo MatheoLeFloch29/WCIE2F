@@ -28,7 +28,7 @@ We assume the true continuous exposure $E_{i}^*(t)$ of subject $i$ at time $t$ f
 
 $$ E_{ij}=\underbrace{X_i(t)^\top\beta + Z_{i}(t)^\top b_i}_{E_i^*(t_{ij})}+\varepsilon_{ij} $$
 
-where $X_i(t)$ is the vector of explanatory variables, $\beta$ the fixed effects,$Z_i(t)$ a subset of $X_i(t)$, and $b_i \sim N$(0,B)$ are subject-specific random effects. The time evolution is described either by a simple time function or by natural cubic splines to model more flexible variations.
+where $X_i(t)$ is the vector of explanatory variables, $\beta$ the fixed effects, $Z_i(t)$ a subset of $X_i(t)$, and $b_i \sim N$(0,B) are subject-specific random effects (B is the variance-covariance matrix). The time evolution is described either by a simple time function but that can be describe by natural cubic splines to model more flexible variations.
 
 ## Event Modeling
 
@@ -38,7 +38,7 @@ This cumulative exposure is then included in a logistic model to estimate the pr
 
 \begin{align*}
     \text{logit}(P(Y_i=1)) &= \alpha_0 + \alpha_pX_{ip} + {WCIE_i}\\
-    &= \alpha_0 + \alpha_pX_{ip} + {\sum_{t=-S}^{0} E_i(t) \times w(t)}
+    &= \alpha_0 + \alpha_pX_{ip} + {\sum_{t=-S}^{0} E_i^*(t) \times w(t)}
     \label{eq7}
 \end{align*}
 
@@ -69,41 +69,45 @@ As the MMSE score has a highly skewed distribution, we use its normalized versio
 
 ```{r}
 library(NormPsy)
-paquid$normMMSE <- normMMSE(paquid$MMSE)
+paquid2$normMMSE <- normMMSE(paquid2$MMSE)
 ```
 
 
 ### split dataset
 
-In order to obtain our two time windows, we split the dataset in two sub dataset. The first one corrsponding to the outcome windows and keep one line per subject when he developp at least a moderate physical dependency (HIER >= 2), this event appear at $t=0$. The second dataset corresponding to the entire exposition window before this event $t=[-S,0]$.
+In order to obtain our two time windows, we split the dataset in two sub dataset. The second one corresponding to the outcome windows and keep one line per subject when he developp at least a moderate physical dependency (HIER >= 2), this event appear after $t=0$ consider as the landmark fixed at 10 years of follow up. The second dataset corresponding to the entire exposition window before this event $t=[-S,0]$ which no patient have the outcome.
 
-```{r}
+```{r,message=F}
 library(dplyr)
-paquid_outcome <- paquid %>% 
-  arrange(ID, time) %>%                # ordre chronologique
+
+
+paquid_expo <- paquid2 %>%
+  arrange(ID, time) %>%
+  group_by(ID) %>%
+  filter(time<=10 & HIER2==0) %>% 
+  mutate(time2=-10+time)   #transform the time variable
+
+
+paquid_outcome <- paquid_expo %>%
+  select(ID) %>% distinct() %>% 
+  inner_join(paquid2, by="ID") %>% 
+  arrange(ID, time) %>%                
   group_by(ID) %>% 
+  filter((time) >= 10) %>%   
   slice(
     if (any(HIER2 == 1, na.rm = TRUE)) {
-      which(HIER2 == 1)[1]             # 1re visite avec HIER2 == 1
+      which(HIER2 == 1)[1]        # keep the first line when the patient develop the outcome
     } else {
-      n()                               # sinon, dernière visite
+      n()                 # else keep the last follow up mesure              
     }
   ) %>% 
   ungroup()
 
-paquid_expo <- paquid %>%
-  arrange(ID, time) %>%
-  group_by(ID) %>%
-  mutate(
-    time_outcome = if (any(HIER2 == 1, na.rm = TRUE)) {
-      time[which(HIER2 == 1)[1]]  # 1er moment HIER2 == 1
-    } else {
-      max(time, na.rm = TRUE)     # sinon dernière visite
-    }
-  ) %>%
-  filter(time <= time_outcome) %>%
-  mutate(time_expo=time-time_outcome) %>% 
-  ungroup()
+# keep exactly the same patient than outcome data
+paquid_expo <- paquid_outcome %>% 
+  select(ID) %>% 
+  inner_join(paquid_expo, by="ID")
+
 
 ```
 
@@ -146,13 +150,36 @@ library(lcmm)
 library(splines)
 library(mixWCE)
 library(ggplot2)
-m_expo<-hlme(normMMSE~ns(time_expo, knots = c(-16,-12,-8,-4),Boundary.knots = c(-20,-0))+male,
-             random = ~ns(time_expo, knots = c(-16,-12,-8,-4),Boundary.knots = c(-20,-0)),
+m_expo<-hlme(normMMSE~ns(time2, knots = c(-16,-12,-8,-4),Boundary.knots = c(-19,-1))+male,
+             random = ~ns(time2, knots = c(-16,-12,-8,-4),Boundary.knots = c(-19,-1)),
              subject = "ID",data = paquid_expo,returndata = T)
 
-m_outcome<-WCEland(mexpo = m_expo,var.time = "time_expo",time.frame = c(-20,0,1),weightbasis = "NS"
-              ,knots.vector = list(knots=NULL, boundary.knots=c(-20,-0)),data = paquid_outcome
-              ,reg.type = "logistic",model = HIER2~male+WCIE,n_boot = 20)
+m_expo2 <- hlme(normMMSE~ns(time2, knots = c(-15,-10,-5),Boundary.knots = c(-19,-1))+male,
+             random = ~ns(time2, knots = c(-15,-10,-5),Boundary.knots = c(-19,-1)),
+             subject = "ID",data = paquid_expo,returndata = T)
+
+m_expo3 <- hlme(normMMSE~ns(time2, knots = c(-13,-7),Boundary.knots = c(-19,-1))+male,
+             random = ~ns(time2, knots = c(-13,-7),Boundary.knots = c(-19,-1)),
+             subject = "ID",data = paquid_expo,returndata = T)
+
+m_expo4 <- hlme(normMMSE~ns(time2, knots = c(-10),Boundary.knots = c(-19,-1))+male,
+             random = ~ns(time2, knots = c(-10),Boundary.knots = c(-19,-1)),
+             subject = "ID",data = paquid_expo,returndata = T)
+
+m_expo5 <- hlme(normMMSE~time2+male,
+             random = ~time2,
+             subject = "ID",data = paquid_expo,returndata = T)
+
+m_expo$AIC
+m_expo2$AIC
+m_expo3$AIC
+m_expo4$AIC
+
+m_outcome<-WCEland(mexpo = m_expo4,var.time = "time2",time.frame = c(-10,0,1),weightbasis = "NS"
+              ,knots.vector = list(knots=NULL, boundary.knots=c(-19,-1)),data = paquid_outcome
+              ,reg.type = "logistic",model = HIER2~male+WCIE,n_boot = 10)
+
+
 
 ```
 
@@ -163,14 +190,14 @@ We compare several models with different knot configurations and retain the one 
 
 ```{r, message=F}
 
-m_outcome2<-WCEland(mexpo = m_expo,var.time = "time_expo",time.frame = c(-20,0,1),weightbasis = "NS"
-              ,knots.vector = list(knots=c(-10), boundary.knots=c(-20,-0)),data = paquid_outcome
-              ,reg.type = "logistic",model = HIER2~male+WCIE,n_boot = 20)
+m_outcome2<-WCEland(mexpo = m_expo4,var.time = "time2",time.frame = c(-10,0,1),weightbasis = "NS"
+              ,knots.vector = list(knots=c(-10), boundary.knots=c(-19,-1)),data = paquid_outcome
+              ,reg.type = "logistic",model = HIER2~male+WCIE,n_boot = 15)
 
 
-m_outcome3<-WCEland(mexpo = m_expo,var.time = "time_expo",time.frame = c(-20,0,1),weightbasis = "NS"
-              ,knots.vector = list(knots=c(-13,-7), boundary.knots=c(-20,-0)),data = paquid_outcome
-              ,reg.type = "logistic",model = HIER2~male+WCIE,n_boot = 20)
+m_outcome3<-WCEland(mexpo = m_expo4,var.time = "time2",time.frame = c(-10,0,1),weightbasis = "NS"
+              ,knots.vector = list(knots=c(-13,-7), boundary.knots=c(-19,-1)),data = paquid_outcome
+              ,reg.type = "logistic",model = HIER2~male+WCIE,n_boot = 15)
 
 m_outcome$AIC
 m_outcome2$AIC
@@ -203,11 +230,12 @@ summary(m_outcome)
 
 The figure displays the estimated **weighted cumulative exposure (WCE) effect** trajectory over time. Each point on the x-axis represents a specific time lag preceding the outcome, while the y-axis shows the estimated effect of exposure at that time on the outcome.
 
-- The **solid black curve** shows the estimated time-varying exposure effect.
+- The **grey curve** shows the estimated time-varying exposure effect.
 - The **shaded area** represents the 95% confidence interval around the estimate, obtained through bootstrap replicates and by using a delta method.
 - The **horizontal line at zero** helps visualize whether the estimated effect is statistically different from no effect.
 
 ```{r}
 plot(m_outcome)
 ```
+
 This plot displays the estimated contribution of past exposure to the **log-odds** of experiencing the outcome, assuming exposure levels at all other time points are held constant.

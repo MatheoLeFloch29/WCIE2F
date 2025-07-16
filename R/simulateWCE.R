@@ -347,7 +347,7 @@ simulateWCE <- function(object ,nsim=1, seed=NULL, times,internal.step, tname, n
         C <- runif(n, 0, Surv.param$max.censoring.time)
       }else if(Surv.param$censoring.type=="fixe"){
         if (is.null(Surv.param$censoring.type)) {
-          stop("Veuillez spécifier 'fixed.censoring.time' dans les paramètres.")
+          stop("Please specify 'fixed.censoring.time' in the parameters.")
         }
         C <- rep(Surv.param$max.censoring.time, n)
       }

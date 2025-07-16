@@ -135,7 +135,7 @@ and the variables
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi><mi>a</mi><mi>l</mi><mi>e</mi></mrow><annotation encoding="application/x-tex">male</annotation></semantics></math>.
 
 <p>For visualizing the data (head of the table only):</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">head</span>(paquid)</span>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">head</span>(paquid2)</span>
 <span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a> [<span class="dv">38</span>;<span class="dv">5</span>;<span class="dv">246</span>m<span class="co"># A tibble: 6 × 14 [39m</span></span>
 <span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a> [<span class="dv">38</span>;<span class="dv">5</span>;<span class="dv">246</span>m<span class="co"># Groups:   ID [2] [39m</span></span>
 <span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>     ID  MMSE  BVRT   IST  HIER  CESD   age agedem   dem age_init   CEP  male</span>
@@ -151,7 +151,7 @@ and the variables
 dataset the timescale is
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>t</mi><mi>i</mi><mi>m</mi><mi>e</mi></mrow><annotation encoding="application/x-tex">time</annotation></semantics></math>.</p>
 <p>For obtaining a quick summary of the data:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">summary</span>(paquid)</span>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">summary</span>(paquid2)</span>
 <span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>       ID             MMSE            BVRT            IST       </span>
 <span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a> Min.   <span class="sc">:</span>  <span class="fl">1.0</span>   Min.   <span class="sc">:</span> <span class="fl">0.00</span>   Min.   <span class="sc">:</span> <span class="fl">0.00</span>   Min.   <span class="sc">:</span> <span class="fl">5.00</span>  </span>
 <span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a> <span class="dv">1</span>st Qu.<span class="sc">:</span><span class="fl">132.2</span>   <span class="dv">1</span>st Qu.<span class="sc">:</span><span class="fl">25.00</span>   <span class="dv">1</span>st Qu.<span class="sc">:</span> <span class="fl">9.00</span>   <span class="dv">1</span>st Qu.<span class="sc">:</span><span class="fl">22.00</span>  </span>
@@ -176,14 +176,14 @@ dataset the timescale is
 <span id="cb3-23"><a href="#cb3-23" tabindex="-1"></a><span class="st"> 3rd Qu.:1.0000   3rd Qu.:78.57   3rd Qu.:1.0000   3rd Qu.:1.0000  </span></span>
 <span id="cb3-24"><a href="#cb3-24" tabindex="-1"></a><span class="st"> Max.   :1.0000   Max.   :94.56   Max.   :1.0000   Max.   :1.0000  </span></span>
 <span id="cb3-25"><a href="#cb3-25" tabindex="-1"></a><span class="st">                                                                   </span></span>
-<span id="cb3-26"><a href="#cb3-26" tabindex="-1"></a><span class="st">     HIER2             time        </span></span>
-<span id="cb3-27"><a href="#cb3-27" tabindex="-1"></a><span class="st"> Min.   :0.0000   Min.   :-20.159  </span></span>
-<span id="cb3-28"><a href="#cb3-28" tabindex="-1"></a><span class="st"> 1st Qu.:0.0000   1st Qu.:-10.608  </span></span>
-<span id="cb3-29"><a href="#cb3-29" tabindex="-1"></a><span class="st"> Median :0.0000   Median : -5.182  </span></span>
-<span id="cb3-30"><a href="#cb3-30" tabindex="-1"></a><span class="st"> Mean   :0.4011   Mean   : -6.635  </span></span>
-<span id="cb3-31"><a href="#cb3-31" tabindex="-1"></a><span class="st"> 3rd Qu.:1.0000   3rd Qu.: -2.049  </span></span>
-<span id="cb3-32"><a href="#cb3-32" tabindex="-1"></a><span class="st"> Max.   :1.0000   Max.   :  0.000  </span></span>
-<span id="cb3-33"><a href="#cb3-33" tabindex="-1"></a><span class="st"> NA'</span>s   <span class="sc">:</span><span class="dv">46</span>                        </span></code></pre></div>
+<span id="cb3-26"><a href="#cb3-26" tabindex="-1"></a><span class="st">     HIER2             time       </span></span>
+<span id="cb3-27"><a href="#cb3-27" tabindex="-1"></a><span class="st"> Min.   :0.0000   Min.   : 0.000  </span></span>
+<span id="cb3-28"><a href="#cb3-28" tabindex="-1"></a><span class="st"> 1st Qu.:0.0000   1st Qu.: 1.722  </span></span>
+<span id="cb3-29"><a href="#cb3-29" tabindex="-1"></a><span class="st"> Median :0.0000   Median : 4.283  </span></span>
+<span id="cb3-30"><a href="#cb3-30" tabindex="-1"></a><span class="st"> Mean   :0.4011   Mean   : 6.073  </span></span>
+<span id="cb3-31"><a href="#cb3-31" tabindex="-1"></a><span class="st"> 3rd Qu.:1.0000   3rd Qu.: 9.261  </span></span>
+<span id="cb3-32"><a href="#cb3-32" tabindex="-1"></a><span class="st"> Max.   :1.0000   Max.   :20.159  </span></span>
+<span id="cb3-33"><a href="#cb3-33" tabindex="-1"></a><span class="st"> NA'</span>s   <span class="sc">:</span><span class="dv">46</span>                       </span></code></pre></div>
 <p>Some variables have missing values. This is not a problem when using
 mixWCE package, the missing value is replace by his true value for
 expositon variable and delete for outcome variable.</p>

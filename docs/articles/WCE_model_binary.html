@@ -44,7 +44,7 @@
 <li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json">
 </form></li>
-<li class="nav-item"><a class="external-link nav-link" href="https://github.com/MatheoLeFloch29/wciepackage/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/MatheoLeFloch29/mixWCE/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul>
 </div>
 
@@ -61,7 +61,7 @@
       <h1>Estimate weight cumulative exposure effect for binary outcome</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/MatheoLeFloch29/wciepackage/blob/HEAD/vignettes/WCE_model_binary.Rmd" class="external-link"><code>vignettes/WCE_model_binary.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/MatheoLeFloch29/mixWCE/blob/HEAD/vignettes/WCE_model_binary.Rmd" class="external-link"><code>vignettes/WCE_model_binary.Rmd</code></a></small>
       <div class="d-none name"><code>WCE_model_binary.Rmd</code></div>
     </div>
 
@@ -86,12 +86,12 @@ true exposure follows a linear mixed-effects model:</p>
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>X</mi><mi>i</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><mi>t</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">X_i(t)</annotation></semantics></math>
 is the vector of explanatory variables,
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>β</mi><annotation encoding="application/x-tex">\beta</annotation></semantics></math>
-the fixed
-effects,<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>Z</mi><mi>i</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><mi>t</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">Z_i(t)</annotation></semantics></math>
+the fixed effects,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>Z</mi><mi>i</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><mi>t</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">Z_i(t)</annotation></semantics></math>
 a subset of
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>X</mi><mi>i</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><mi>t</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">X_i(t)</annotation></semantics></math>,
 and
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>b</mi><mi>i</mi></msub><mo>∼</mo><mi>N</mi></mrow><annotation encoding="application/x-tex">b_i \sim N</annotation></semantics></math>(0,B)$
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>b</mi><mi>i</mi></msub><mo>∼</mo><mi>N</mi></mrow><annotation encoding="application/x-tex">b_i \sim N</annotation></semantics></math>(0,B)
 are subject-specific random effects. The time evolution is described
 either by a simple time function or by natural cubic splines to model
 more flexible variations.</p>
@@ -113,9 +113,9 @@ the time window exposure.</p>
 <p>This cumulative exposure is then included in a logistic model to
 estimate the probability that the individual is a case
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>Y</mi><mi>i</mi></msub><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">Y_i=1</annotation></semantics></math>):</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mtable><mtr><mtd columnalign="right" style="text-align: right"><mtext mathvariant="normal">logit</mtext><mrow><mo stretchy="true" form="prefix">(</mo><mi>P</mi><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>Y</mi><mi>i</mi></msub><mo>=</mo><mn>1</mn><mo stretchy="true" form="postfix">)</mo></mrow><mo stretchy="true" form="postfix">)</mo></mrow></mtd><mtd columnalign="left" style="text-align: left"><mo>=</mo><msub><mi>α</mi><mn>0</mn></msub><mo>+</mo><msub><mi>α</mi><mi>p</mi></msub><msub><mi>X</mi><mrow><mi>i</mi><mi>p</mi></mrow></msub><mo>+</mo><mrow><mi>W</mi><mi>C</mi><mi>I</mi><msub><mi>E</mi><mi>i</mi></msub></mrow></mtd></mtr><mtr><mtd columnalign="right" style="text-align: right"></mtd><mtd columnalign="left" style="text-align: left"><mo>=</mo><msub><mi>α</mi><mn>0</mn></msub><mo>+</mo><msub><mi>α</mi><mi>p</mi></msub><msub><mi>X</mi><mrow><mi>i</mi><mi>p</mi></mrow></msub><mo>+</mo><mrow><munderover><mo>∑</mo><mrow><mi>t</mi><mo>=</mo><mi>−</mi><mi>S</mi></mrow><mn>0</mn></munderover><msub><mi>E</mi><mi>i</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><mi>t</mi><mo stretchy="true" form="postfix">)</mo></mrow><mo>×</mo><mi>w</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>t</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow></mtd></mtr></mtable><annotation encoding="application/x-tex">\begin{align*}
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mtable><mtr><mtd columnalign="right" style="text-align: right"><mtext mathvariant="normal">logit</mtext><mrow><mo stretchy="true" form="prefix">(</mo><mi>P</mi><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>Y</mi><mi>i</mi></msub><mo>=</mo><mn>1</mn><mo stretchy="true" form="postfix">)</mo></mrow><mo stretchy="true" form="postfix">)</mo></mrow></mtd><mtd columnalign="left" style="text-align: left"><mo>=</mo><msub><mi>α</mi><mn>0</mn></msub><mo>+</mo><msub><mi>α</mi><mi>p</mi></msub><msub><mi>X</mi><mrow><mi>i</mi><mi>p</mi></mrow></msub><mo>+</mo><mrow><mi>W</mi><mi>C</mi><mi>I</mi><msub><mi>E</mi><mi>i</mi></msub></mrow></mtd></mtr><mtr><mtd columnalign="right" style="text-align: right"></mtd><mtd columnalign="left" style="text-align: left"><mo>=</mo><msub><mi>α</mi><mn>0</mn></msub><mo>+</mo><msub><mi>α</mi><mi>p</mi></msub><msub><mi>X</mi><mrow><mi>i</mi><mi>p</mi></mrow></msub><mo>+</mo><mrow><munderover><mo>∑</mo><mrow><mi>t</mi><mo>=</mo><mi>−</mi><mi>S</mi></mrow><mn>0</mn></munderover><msubsup><mi>E</mi><mi>i</mi><mo>*</mo></msubsup><mrow><mo stretchy="true" form="prefix">(</mo><mi>t</mi><mo stretchy="true" form="postfix">)</mo></mrow><mo>×</mo><mi>w</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>t</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow></mtd></mtr></mtable><annotation encoding="application/x-tex">\begin{align*}
     \text{logit}(P(Y_i=1)) &amp;= \alpha_0 + \alpha_pX_{ip} + {WCIE_i}\\
-    &amp;= \alpha_0 + \alpha_pX_{ip} + {\sum_{t=-S}^{0} E_i(t) \times w(t)}
+    &amp;= \alpha_0 + \alpha_pX_{ip} + {\sum_{t=-S}^{0} E_i^*(t) \times w(t)}
     \label{eq7}
 \end{align*}</annotation></semantics></math></p>
 <p>where
@@ -177,19 +177,20 @@ assumption that the residuals (and random effects) follow a normal
 distribution.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">NormPsy</span><span class="op">)</span></span>
-<span><span class="va">paquid</span><span class="op">$</span><span class="va">normMMSE</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/NormPsy/man/normMMSE.html" class="external-link">normMMSE</a></span><span class="op">(</span><span class="va">paquid</span><span class="op">$</span><span class="va">MMSE</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">paquid2</span><span class="op">$</span><span class="va">normMMSE</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/NormPsy/man/normMMSE.html" class="external-link">normMMSE</a></span><span class="op">(</span><span class="va">paquid2</span><span class="op">$</span><span class="va">MMSE</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level4">
 <h4 id="split-dataset">split dataset<a class="anchor" aria-label="anchor" href="#split-dataset"></a>
 </h4>
 <p>In order to obtain our two time windows, we split the dataset in two
-sub dataset. The first one corrsponding to the outcome windows and keep
-one line per subject when he developp at least a moderate physical
-dependency (HIER &gt;= 2), this event appear at
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>t</mi><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">t=0</annotation></semantics></math>.
-The second dataset corresponding to the entire exposition window before
-this event
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>t</mi><mo>=</mo><mrow><mo stretchy="true" form="prefix">[</mo><mi>−</mi><mi>S</mi><mo>,</mo><mn>0</mn><mo stretchy="true" form="postfix">]</mo></mrow></mrow><annotation encoding="application/x-tex">t=[-S,0]</annotation></semantics></math>.</p>
+sub dataset. The second one corresponding to the outcome windows and
+keep one line per subject when he developp at least a moderate physical
+dependency (HIER &gt;= 2), this event appear after
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>t</mi><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">t=0</annotation></semantics></math>
+consider as the landmark fixed at 10 years of follow up. The second
+dataset corresponding to the entire exposition window before this event
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>t</mi><mo>=</mo><mrow><mo stretchy="true" form="prefix">[</mo><mi>−</mi><mi>S</mi><mo>,</mo><mn>0</mn><mo stretchy="true" form="postfix">]</mo></mrow></mrow><annotation encoding="application/x-tex">t=[-S,0]</annotation></semantics></math>
+which no patient have the outcome.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -200,31 +201,34 @@ this event
 <span><span class="co">#&gt; The following objects are masked from 'package:base':</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;     intersect, setdiff, setequal, union</span></span>
-<span><span class="va">paquid_outcome</span> <span class="op">&lt;-</span> <span class="va">paquid</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> </span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/arrange.html" class="external-link">arrange</a></span><span class="op">(</span><span class="va">ID</span>, <span class="va">time</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span>                <span class="co"># ordre chronologique</span></span>
+<span></span>
+<span></span>
+<span><span class="va">paquid_expo</span> <span class="op">&lt;-</span> <span class="va">paquid2</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/arrange.html" class="external-link">arrange</a></span><span class="op">(</span><span class="va">ID</span>, <span class="va">time</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html" class="external-link">group_by</a></span><span class="op">(</span><span class="va">ID</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">time</span><span class="op">&lt;=</span><span class="fl">10</span> <span class="op">&amp;</span> <span class="va">HIER2</span><span class="op">==</span><span class="fl">0</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> </span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>time2<span class="op">=</span><span class="op">-</span><span class="fl">10</span><span class="op">+</span><span class="va">time</span><span class="op">)</span>   <span class="co">#transform the time variable</span></span>
+<span></span>
+<span></span>
+<span><span class="va">paquid_outcome</span> <span class="op">&lt;-</span> <span class="va">paquid_expo</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">ID</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/distinct.html" class="external-link">distinct</a></span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> </span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate-joins.html" class="external-link">inner_join</a></span><span class="op">(</span><span class="va">paquid2</span>, by<span class="op">=</span><span class="st">"ID"</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> </span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/arrange.html" class="external-link">arrange</a></span><span class="op">(</span><span class="va">ID</span>, <span class="va">time</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span>                </span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html" class="external-link">group_by</a></span><span class="op">(</span><span class="va">ID</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> </span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="op">(</span><span class="va">time</span><span class="op">)</span> <span class="op">&gt;=</span> <span class="fl">10</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span>   </span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/slice.html" class="external-link">slice</a></span><span class="op">(</span></span>
 <span>    <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/any.html" class="external-link">any</a></span><span class="op">(</span><span class="va">HIER2</span> <span class="op">==</span> <span class="fl">1</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>      <span class="fu"><a href="https://rdrr.io/r/base/which.html" class="external-link">which</a></span><span class="op">(</span><span class="va">HIER2</span> <span class="op">==</span> <span class="fl">1</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span>             <span class="co"># 1re visite avec HIER2 == 1</span></span>
+<span>      <span class="fu"><a href="https://rdrr.io/r/base/which.html" class="external-link">which</a></span><span class="op">(</span><span class="va">HIER2</span> <span class="op">==</span> <span class="fl">1</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span>        <span class="co"># keep the first line when the patient develop the outcome</span></span>
 <span>    <span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
-<span>      <span class="fu"><a href="https://dplyr.tidyverse.org/reference/context.html" class="external-link">n</a></span><span class="op">(</span><span class="op">)</span>                               <span class="co"># sinon, dernière visite</span></span>
+<span>      <span class="fu"><a href="https://dplyr.tidyverse.org/reference/context.html" class="external-link">n</a></span><span class="op">(</span><span class="op">)</span>                 <span class="co"># else keep the last follow up mesure              </span></span>
 <span>    <span class="op">}</span></span>
 <span>  <span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> </span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html" class="external-link">ungroup</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">paquid_expo</span> <span class="op">&lt;-</span> <span class="va">paquid</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/arrange.html" class="external-link">arrange</a></span><span class="op">(</span><span class="va">ID</span>, <span class="va">time</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html" class="external-link">group_by</a></span><span class="op">(</span><span class="va">ID</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span></span>
-<span>    time_outcome <span class="op">=</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/any.html" class="external-link">any</a></span><span class="op">(</span><span class="va">HIER2</span> <span class="op">==</span> <span class="fl">1</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>      <span class="va">time</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/which.html" class="external-link">which</a></span><span class="op">(</span><span class="va">HIER2</span> <span class="op">==</span> <span class="fl">1</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span>  <span class="co"># 1er moment HIER2 == 1</span></span>
-<span>    <span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
-<span>      <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">time</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>     <span class="co"># sinon dernière visite</span></span>
-<span>    <span class="op">}</span></span>
-<span>  <span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">time</span> <span class="op">&lt;=</span> <span class="va">time_outcome</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>time_expo<span class="op">=</span><span class="va">time</span><span class="op">-</span><span class="va">time_outcome</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> </span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html" class="external-link">ungroup</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<span><span class="co"># keep exactly the same patient than outcome data</span></span>
+<span><span class="va">paquid_expo</span> <span class="op">&lt;-</span> <span class="va">paquid_outcome</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> </span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">ID</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> </span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate-joins.html" class="external-link">inner_join</a></span><span class="op">(</span><span class="va">paquid_expo</span>, by<span class="op">=</span><span class="st">"ID"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level4">
 <h4 id="description-of-the-sample">Description of the sample<a class="anchor" aria-label="anchor" href="#description-of-the-sample"></a>
@@ -234,72 +238,72 @@ this event
 <span><span class="va">expo</span> <span class="op">&lt;-</span> <span class="va">paquid_expo</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html" class="external-link">group_by</a></span><span class="op">(</span><span class="va">ID</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/arrange.html" class="external-link">arrange</a></span><span class="op">(</span><span class="va">time</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/row_number.html" class="external-link">row_number</a></span><span class="op">(</span><span class="op">)</span><span class="op">==</span><span class="fl">1</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">expo</span><span class="op">)</span></span>
-<span><span class="co">#&gt;        ID             MMSE            BVRT            IST             HIER     </span></span>
-<span><span class="co">#&gt;  Min.   :  1.0   Min.   :17.00   Min.   : 2.00   Min.   : 8.00   Min.   :0.00  </span></span>
-<span><span class="co">#&gt;  1st Qu.:125.8   1st Qu.:26.00   1st Qu.: 9.00   1st Qu.:24.00   1st Qu.:0.00  </span></span>
-<span><span class="co">#&gt;  Median :250.5   Median :28.00   Median :11.00   Median :28.00   Median :1.00  </span></span>
-<span><span class="co">#&gt;  Mean   :250.5   Mean   :26.97   Mean   :10.81   Mean   :28.14   Mean   :1.03  </span></span>
-<span><span class="co">#&gt;  3rd Qu.:375.2   3rd Qu.:29.00   3rd Qu.:13.00   3rd Qu.:32.00   3rd Qu.:2.00  </span></span>
-<span><span class="co">#&gt;  Max.   :500.0   Max.   :30.00   Max.   :15.00   Max.   :40.00   Max.   :3.00  </span></span>
-<span><span class="co">#&gt;                  NA's   :4       NA's   :17      NA's   :17      NA's   :3     </span></span>
-<span><span class="co">#&gt;       CESD             age            agedem           dem       </span></span>
-<span><span class="co">#&gt;  Min.   : 0.000   Min.   :66.28   Min.   :66.87   Min.   :0.000  </span></span>
-<span><span class="co">#&gt;  1st Qu.: 1.000   1st Qu.:69.87   1st Qu.:78.92   1st Qu.:0.000  </span></span>
-<span><span class="co">#&gt;  Median : 5.000   Median :75.34   Median :84.74   Median :0.000  </span></span>
-<span><span class="co">#&gt;  Mean   : 7.577   Mean   :75.85   Mean   :83.81   Mean   :0.256  </span></span>
-<span><span class="co">#&gt;  3rd Qu.:11.000   3rd Qu.:80.16   3rd Qu.:88.78   3rd Qu.:1.000  </span></span>
-<span><span class="co">#&gt;  Max.   :42.000   Max.   :94.56   Max.   :99.49   Max.   :1.000  </span></span>
-<span><span class="co">#&gt;  NA's   :6                                                       </span></span>
-<span><span class="co">#&gt;     age_init          CEP            male           HIER2       </span></span>
-<span><span class="co">#&gt;  Min.   :66.28   Min.   :0.00   Min.   :0.000   Min.   :0.0000  </span></span>
-<span><span class="co">#&gt;  1st Qu.:69.87   1st Qu.:0.00   1st Qu.:0.000   1st Qu.:0.0000  </span></span>
-<span><span class="co">#&gt;  Median :75.34   Median :1.00   Median :0.000   Median :0.0000  </span></span>
-<span><span class="co">#&gt;  Mean   :75.85   Mean   :0.71   Mean   :0.424   Mean   :0.2555  </span></span>
-<span><span class="co">#&gt;  3rd Qu.:80.16   3rd Qu.:1.00   3rd Qu.:1.000   3rd Qu.:1.0000  </span></span>
-<span><span class="co">#&gt;  Max.   :94.56   Max.   :1.00   Max.   :1.000   Max.   :1.0000  </span></span>
-<span><span class="co">#&gt;                                                 NA's   :3       </span></span>
-<span><span class="co">#&gt;       time            normMMSE       time_outcome       time_expo      </span></span>
-<span><span class="co">#&gt;  Min.   :-20.159   Min.   : 29.93   Min.   :-19.857   Min.   :-20.159  </span></span>
-<span><span class="co">#&gt;  1st Qu.:-15.884   1st Qu.: 61.18   1st Qu.: -5.578   1st Qu.: -9.212  </span></span>
-<span><span class="co">#&gt;  Median : -8.701   Median : 74.61   Median :  0.000   Median : -3.599  </span></span>
-<span><span class="co">#&gt;  Mean   : -8.911   Mean   : 71.37   Mean   : -3.245   Mean   : -5.666  </span></span>
-<span><span class="co">#&gt;  3rd Qu.: -2.272   3rd Qu.: 84.32   3rd Qu.:  0.000   3rd Qu.:  0.000  </span></span>
-<span><span class="co">#&gt;  Max.   :  0.000   Max.   :100.00   Max.   :  0.000   Max.   :  0.000  </span></span>
-<span><span class="co">#&gt;                    NA's   :4</span></span>
+<span><span class="co">#&gt;        ID             MMSE            BVRT           IST       </span></span>
+<span><span class="co">#&gt;  Min.   :  2.0   Min.   :20.00   Min.   : 2.0   Min.   :16.00  </span></span>
+<span><span class="co">#&gt;  1st Qu.:132.0   1st Qu.:27.00   1st Qu.:10.0   1st Qu.:26.00  </span></span>
+<span><span class="co">#&gt;  Median :272.0   Median :28.00   Median :11.0   Median :30.00  </span></span>
+<span><span class="co">#&gt;  Mean   :261.5   Mean   :27.74   Mean   :11.4   Mean   :29.79  </span></span>
+<span><span class="co">#&gt;  3rd Qu.:384.0   3rd Qu.:29.00   3rd Qu.:13.0   3rd Qu.:33.25  </span></span>
+<span><span class="co">#&gt;  Max.   :500.0   Max.   :30.00   Max.   :15.0   Max.   :40.00  </span></span>
+<span><span class="co">#&gt;                  NA's   :1       NA's   :2      NA's   :1      </span></span>
+<span><span class="co">#&gt;       HIER             CESD             age            agedem     </span></span>
+<span><span class="co">#&gt;  Min.   :0.0000   Min.   : 0.000   Min.   :66.73   Min.   :74.42  </span></span>
+<span><span class="co">#&gt;  1st Qu.:0.0000   1st Qu.: 0.000   1st Qu.:69.08   1st Qu.:84.81  </span></span>
+<span><span class="co">#&gt;  Median :1.0000   Median : 4.000   Median :71.81   Median :87.70  </span></span>
+<span><span class="co">#&gt;  Mean   :0.6425   Mean   : 6.068   Mean   :73.00   Mean   :87.51  </span></span>
+<span><span class="co">#&gt;  3rd Qu.:1.0000   3rd Qu.: 9.000   3rd Qu.:76.48   3rd Qu.:90.50  </span></span>
+<span><span class="co">#&gt;  Max.   :1.0000   Max.   :27.000   Max.   :86.80   Max.   :99.49  </span></span>
+<span><span class="co">#&gt;                   NA's   :1                                       </span></span>
+<span><span class="co">#&gt;       dem            age_init          CEP              male            HIER2  </span></span>
+<span><span class="co">#&gt;  Min.   :0.0000   Min.   :66.73   Min.   :0.0000   Min.   :0.0000   Min.   :0  </span></span>
+<span><span class="co">#&gt;  1st Qu.:0.0000   1st Qu.:69.07   1st Qu.:1.0000   1st Qu.:0.0000   1st Qu.:0  </span></span>
+<span><span class="co">#&gt;  Median :0.0000   Median :71.43   Median :1.0000   Median :0.0000   Median :0  </span></span>
+<span><span class="co">#&gt;  Mean   :0.3731   Mean   :72.80   Mean   :0.7772   Mean   :0.3782   Mean   :0  </span></span>
+<span><span class="co">#&gt;  3rd Qu.:1.0000   3rd Qu.:76.35   3rd Qu.:1.0000   3rd Qu.:1.0000   3rd Qu.:0  </span></span>
+<span><span class="co">#&gt;  Max.   :1.0000   Max.   :84.04   Max.   :1.0000   Max.   :1.0000   Max.   :0  </span></span>
+<span><span class="co">#&gt;                                                                                </span></span>
+<span><span class="co">#&gt;       time           normMMSE          time2         </span></span>
+<span><span class="co">#&gt;  Min.   :0.0000   Min.   : 37.37   Min.   :-10.0000  </span></span>
+<span><span class="co">#&gt;  1st Qu.:0.0000   1st Qu.: 67.25   1st Qu.:-10.0000  </span></span>
+<span><span class="co">#&gt;  Median :0.0000   Median : 74.61   Median :-10.0000  </span></span>
+<span><span class="co">#&gt;  Mean   :0.1943   Mean   : 76.84   Mean   : -9.8057  </span></span>
+<span><span class="co">#&gt;  3rd Qu.:0.0000   3rd Qu.: 84.32   3rd Qu.:-10.0000  </span></span>
+<span><span class="co">#&gt;  Max.   :9.8124   Max.   :100.00   Max.   : -0.1876  </span></span>
+<span><span class="co">#&gt;                   NA's   :1</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">paquid_outcome</span><span class="op">)</span></span>
-<span><span class="co">#&gt;        ID             MMSE           BVRT            IST             HIER      </span></span>
-<span><span class="co">#&gt;  Min.   :  1.0   Min.   : 0.0   Min.   : 0.00   Min.   : 6.00   Min.   :0.000  </span></span>
-<span><span class="co">#&gt;  1st Qu.:125.8   1st Qu.:25.0   1st Qu.: 9.00   1st Qu.:21.00   1st Qu.:1.000  </span></span>
-<span><span class="co">#&gt;  Median :250.5   Median :27.0   Median :11.00   Median :25.00   Median :2.000  </span></span>
-<span><span class="co">#&gt;  Mean   :250.5   Mean   :25.9   Mean   :10.24   Mean   :25.53   Mean   :1.671  </span></span>
-<span><span class="co">#&gt;  3rd Qu.:375.2   3rd Qu.:28.0   3rd Qu.:12.00   3rd Qu.:29.00   3rd Qu.:2.000  </span></span>
-<span><span class="co">#&gt;  Max.   :500.0   Max.   :30.0   Max.   :15.00   Max.   :40.00   Max.   :3.000  </span></span>
-<span><span class="co">#&gt;                  NA's   :4      NA's   :51      NA's   :42      NA's   :5      </span></span>
-<span><span class="co">#&gt;       CESD            age            agedem           dem       </span></span>
-<span><span class="co">#&gt;  Min.   : 0.00   Min.   :66.72   Min.   :66.87   Min.   :0.000  </span></span>
-<span><span class="co">#&gt;  1st Qu.: 3.00   1st Qu.:77.09   1st Qu.:78.92   1st Qu.:0.000  </span></span>
-<span><span class="co">#&gt;  Median : 8.00   Median :81.66   Median :84.74   Median :0.000  </span></span>
-<span><span class="co">#&gt;  Mean   :10.13   Mean   :81.51   Mean   :83.81   Mean   :0.256  </span></span>
-<span><span class="co">#&gt;  3rd Qu.:15.00   3rd Qu.:86.36   3rd Qu.:88.78   3rd Qu.:1.000  </span></span>
-<span><span class="co">#&gt;  Max.   :46.00   Max.   :96.71   Max.   :99.49   Max.   :1.000  </span></span>
-<span><span class="co">#&gt;  NA's   :23                                                     </span></span>
-<span><span class="co">#&gt;     age_init          CEP            male           HIER2       </span></span>
-<span><span class="co">#&gt;  Min.   :66.28   Min.   :0.00   Min.   :0.000   Min.   :0.0000  </span></span>
-<span><span class="co">#&gt;  1st Qu.:69.87   1st Qu.:0.00   1st Qu.:0.000   1st Qu.:0.0000  </span></span>
-<span><span class="co">#&gt;  Median :75.34   Median :1.00   Median :0.000   Median :1.0000  </span></span>
-<span><span class="co">#&gt;  Mean   :75.85   Mean   :0.71   Mean   :0.424   Mean   :0.6747  </span></span>
-<span><span class="co">#&gt;  3rd Qu.:80.16   3rd Qu.:1.00   3rd Qu.:1.000   3rd Qu.:1.0000  </span></span>
-<span><span class="co">#&gt;  Max.   :94.56   Max.   :1.00   Max.   :1.000   Max.   :1.0000  </span></span>
-<span><span class="co">#&gt;                                                 NA's   :5       </span></span>
-<span><span class="co">#&gt;       time            normMMSE     </span></span>
-<span><span class="co">#&gt;  Min.   :-19.857   Min.   :  0.00  </span></span>
-<span><span class="co">#&gt;  1st Qu.: -5.578   1st Qu.: 55.98  </span></span>
-<span><span class="co">#&gt;  Median :  0.000   Median : 67.25  </span></span>
-<span><span class="co">#&gt;  Mean   : -3.245   Mean   : 65.55  </span></span>
-<span><span class="co">#&gt;  3rd Qu.:  0.000   3rd Qu.: 74.61  </span></span>
-<span><span class="co">#&gt;  Max.   :  0.000   Max.   :100.00  </span></span>
-<span><span class="co">#&gt;                    NA's   :4</span></span></code></pre></div>
+<span><span class="co">#&gt;        ID             MMSE            BVRT            IST       </span></span>
+<span><span class="co">#&gt;  Min.   :  2.0   Min.   : 1.00   Min.   : 4.00   Min.   : 5.00  </span></span>
+<span><span class="co">#&gt;  1st Qu.:132.0   1st Qu.:23.00   1st Qu.: 9.00   1st Qu.:20.00  </span></span>
+<span><span class="co">#&gt;  Median :272.0   Median :26.00   Median :11.00   Median :24.00  </span></span>
+<span><span class="co">#&gt;  Mean   :261.5   Mean   :24.82   Mean   :10.32   Mean   :23.73  </span></span>
+<span><span class="co">#&gt;  3rd Qu.:384.0   3rd Qu.:28.00   3rd Qu.:12.00   3rd Qu.:28.00  </span></span>
+<span><span class="co">#&gt;  Max.   :500.0   Max.   :30.00   Max.   :15.00   Max.   :40.00  </span></span>
+<span><span class="co">#&gt;                  NA's   :5       NA's   :40      NA's   :24     </span></span>
+<span><span class="co">#&gt;       HIER            CESD            age             agedem     </span></span>
+<span><span class="co">#&gt;  Min.   :0.000   Min.   : 0.00   Min.   : 78.42   Min.   :74.42  </span></span>
+<span><span class="co">#&gt;  1st Qu.:1.500   1st Qu.: 4.00   1st Qu.: 83.53   1st Qu.:84.81  </span></span>
+<span><span class="co">#&gt;  Median :2.000   Median : 9.00   Median : 86.86   Median :87.70  </span></span>
+<span><span class="co">#&gt;  Mean   :1.817   Mean   :10.66   Mean   : 86.90   Mean   :87.51  </span></span>
+<span><span class="co">#&gt;  3rd Qu.:2.000   3rd Qu.:15.00   3rd Qu.: 89.80   3rd Qu.:90.50  </span></span>
+<span><span class="co">#&gt;  Max.   :3.000   Max.   :49.00   Max.   :102.16   Max.   :99.49  </span></span>
+<span><span class="co">#&gt;  NA's   :2       NA's   :22                                      </span></span>
+<span><span class="co">#&gt;       dem            age_init          CEP              male       </span></span>
+<span><span class="co">#&gt;  Min.   :0.0000   Min.   :66.73   Min.   :0.0000   Min.   :0.0000  </span></span>
+<span><span class="co">#&gt;  1st Qu.:0.0000   1st Qu.:69.07   1st Qu.:1.0000   1st Qu.:0.0000  </span></span>
+<span><span class="co">#&gt;  Median :0.0000   Median :71.43   Median :1.0000   Median :0.0000  </span></span>
+<span><span class="co">#&gt;  Mean   :0.3731   Mean   :72.80   Mean   :0.7772   Mean   :0.3782  </span></span>
+<span><span class="co">#&gt;  3rd Qu.:1.0000   3rd Qu.:76.35   3rd Qu.:1.0000   3rd Qu.:1.0000  </span></span>
+<span><span class="co">#&gt;  Max.   :1.0000   Max.   :84.04   Max.   :1.0000   Max.   :1.0000  </span></span>
+<span><span class="co">#&gt;                                                                    </span></span>
+<span><span class="co">#&gt;      HIER2             time          normMMSE     </span></span>
+<span><span class="co">#&gt;  Min.   :0.0000   Min.   :10.39   Min.   :  2.91  </span></span>
+<span><span class="co">#&gt;  1st Qu.:0.5000   1st Qu.:11.48   1st Qu.: 47.40  </span></span>
+<span><span class="co">#&gt;  Median :1.0000   Median :13.58   Median : 61.18  </span></span>
+<span><span class="co">#&gt;  Mean   :0.7487   Mean   :14.10   Mean   : 61.16  </span></span>
+<span><span class="co">#&gt;  3rd Qu.:1.0000   3rd Qu.:16.36   3rd Qu.: 74.61  </span></span>
+<span><span class="co">#&gt;  Max.   :1.0000   Max.   :20.16   Max.   :100.00  </span></span>
+<span><span class="co">#&gt;  NA's   :2                        NA's   :5</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level3">
@@ -326,27 +330,114 @@ is a basis of natural cubic splines with
 chosen internal knots.</p>
 </div>
 <div class="section level3">
-<h3 id="estimate-the-exposure-effect">Estimate the exposure effect<a class="anchor" aria-label="anchor" href="#estimate-the-exposure-effect"></a>
+<h3 id="estimate-the-exposure-effect-with-0-knots">Estimate the exposure effect with 0 knots<a class="anchor" aria-label="anchor" href="#estimate-the-exposure-effect-with-0-knots"></a>
 </h3>
+<p>To begin, we need to fit a linear mixed-effects exposure model using
+the
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi><mi>l</mi><mi>m</mi><mi>e</mi></mrow><annotation encoding="application/x-tex">hlme</annotation></semantics></math>
+function from the
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>l</mi><mi>c</mi><mi>m</mi><mi>m</mi></mrow><annotation encoding="application/x-tex">lcmm</annotation></semantics></math>
+package. For the package to work correctly later (e.g., in WCEland),
+it’s important to model the time variable using flexible time functions
+such as natural cubic splines. In our case, we chose to use natural
+splines with 4 internal knots. The number of internal knots was selected
+based on the Akaike Information Criterion (AIC) from different mixed
+linear models.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://cecileproust-lima.github.io/lcmm/" class="external-link">lcmm</a></span><span class="op">)</span></span>
-<span><span class="va">m_expo</span><span class="op">&lt;-</span><span class="fu"><a href="https://cecileproust-lima.github.io/lcmm/reference/hlme.html" class="external-link">hlme</a></span><span class="op">(</span><span class="va">normMMSE</span><span class="op">~</span><span class="va">time_expo</span><span class="op">+</span><span class="va">male</span>,random <span class="op">=</span> <span class="op">~</span><span class="va">time_expo</span>,subject <span class="op">=</span> <span class="st">"ID"</span>,data <span class="op">=</span> <span class="va">paquid_expo</span>,returndata <span class="op">=</span> <span class="cn">T</span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">splines</span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/MatheoLeFloch29/mixWCE" class="external-link">mixWCE</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
+<span><span class="va">m_expo</span><span class="op">&lt;-</span><span class="fu"><a href="https://cecileproust-lima.github.io/lcmm/reference/hlme.html" class="external-link">hlme</a></span><span class="op">(</span><span class="va">normMMSE</span><span class="op">~</span><span class="fu"><a href="https://rdrr.io/r/splines/ns.html" class="external-link">ns</a></span><span class="op">(</span><span class="va">time2</span>, knots <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">16</span>,<span class="op">-</span><span class="fl">12</span>,<span class="op">-</span><span class="fl">8</span>,<span class="op">-</span><span class="fl">4</span><span class="op">)</span>,Boundary.knots <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">19</span>,<span class="op">-</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">+</span><span class="va">male</span>,</span>
+<span>             random <span class="op">=</span> <span class="op">~</span><span class="fu"><a href="https://rdrr.io/r/splines/ns.html" class="external-link">ns</a></span><span class="op">(</span><span class="va">time2</span>, knots <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">16</span>,<span class="op">-</span><span class="fl">12</span>,<span class="op">-</span><span class="fl">8</span>,<span class="op">-</span><span class="fl">4</span><span class="op">)</span>,Boundary.knots <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">19</span>,<span class="op">-</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>             subject <span class="op">=</span> <span class="st">"ID"</span>,data <span class="op">=</span> <span class="va">paquid_expo</span>,returndata <span class="op">=</span> <span class="cn">T</span><span class="op">)</span></span>
 <span></span>
+<span><span class="va">m_expo2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://cecileproust-lima.github.io/lcmm/reference/hlme.html" class="external-link">hlme</a></span><span class="op">(</span><span class="va">normMMSE</span><span class="op">~</span><span class="fu"><a href="https://rdrr.io/r/splines/ns.html" class="external-link">ns</a></span><span class="op">(</span><span class="va">time2</span>, knots <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">15</span>,<span class="op">-</span><span class="fl">10</span>,<span class="op">-</span><span class="fl">5</span><span class="op">)</span>,Boundary.knots <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">19</span>,<span class="op">-</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">+</span><span class="va">male</span>,</span>
+<span>             random <span class="op">=</span> <span class="op">~</span><span class="fu"><a href="https://rdrr.io/r/splines/ns.html" class="external-link">ns</a></span><span class="op">(</span><span class="va">time2</span>, knots <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">15</span>,<span class="op">-</span><span class="fl">10</span>,<span class="op">-</span><span class="fl">5</span><span class="op">)</span>,Boundary.knots <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">19</span>,<span class="op">-</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>             subject <span class="op">=</span> <span class="st">"ID"</span>,data <span class="op">=</span> <span class="va">paquid_expo</span>,returndata <span class="op">=</span> <span class="cn">T</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">m_outcome</span><span class="op">&lt;-</span><span class="fu"><a href="../reference/WCEland.html">WCEland</a></span><span class="op">(</span>mexpo <span class="op">=</span> <span class="va">m_expo</span>,var.time <span class="op">=</span> <span class="st">"time_expo"</span>,time.frame <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">10</span>,<span class="fl">0</span>,<span class="fl">1</span><span class="op">)</span>,weightbasis <span class="op">=</span> <span class="st">"NS"</span></span>
-<span>              ,knots.vector <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>knots<span class="op">=</span><span class="cn">NULL</span>, boundary.knots<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">9</span>,<span class="op">-</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span>,knots <span class="op">=</span> <span class="cn">NULL</span>,data <span class="op">=</span> <span class="va">paquid_outcome</span></span>
-<span>              ,reg.type <span class="op">=</span> <span class="st">"logistic"</span>,model <span class="op">=</span> <span class="va">HIER2</span><span class="op">~</span><span class="va">male</span><span class="op">+</span><span class="va">WCIE</span>,n_boot <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span>
+<span><span class="va">m_expo3</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://cecileproust-lima.github.io/lcmm/reference/hlme.html" class="external-link">hlme</a></span><span class="op">(</span><span class="va">normMMSE</span><span class="op">~</span><span class="fu"><a href="https://rdrr.io/r/splines/ns.html" class="external-link">ns</a></span><span class="op">(</span><span class="va">time2</span>, knots <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">13</span>,<span class="op">-</span><span class="fl">7</span><span class="op">)</span>,Boundary.knots <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">19</span>,<span class="op">-</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">+</span><span class="va">male</span>,</span>
+<span>             random <span class="op">=</span> <span class="op">~</span><span class="fu"><a href="https://rdrr.io/r/splines/ns.html" class="external-link">ns</a></span><span class="op">(</span><span class="va">time2</span>, knots <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">13</span>,<span class="op">-</span><span class="fl">7</span><span class="op">)</span>,Boundary.knots <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">19</span>,<span class="op">-</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>             subject <span class="op">=</span> <span class="st">"ID"</span>,data <span class="op">=</span> <span class="va">paquid_expo</span>,returndata <span class="op">=</span> <span class="cn">T</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">m_outcome</span><span class="op">$</span><span class="va">call</span></span>
-<span><span class="co">#&gt; glm(formula = HIER2 ~ male + (WCIE1 + WCIE2), family = binomial, </span></span>
-<span><span class="co">#&gt;     data = data.outcome)</span></span></code></pre></div>
+<span><span class="va">m_expo4</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://cecileproust-lima.github.io/lcmm/reference/hlme.html" class="external-link">hlme</a></span><span class="op">(</span><span class="va">normMMSE</span><span class="op">~</span><span class="fu"><a href="https://rdrr.io/r/splines/ns.html" class="external-link">ns</a></span><span class="op">(</span><span class="va">time2</span>, knots <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">10</span><span class="op">)</span>,Boundary.knots <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">19</span>,<span class="op">-</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">+</span><span class="va">male</span>,</span>
+<span>             random <span class="op">=</span> <span class="op">~</span><span class="fu"><a href="https://rdrr.io/r/splines/ns.html" class="external-link">ns</a></span><span class="op">(</span><span class="va">time2</span>, knots <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">10</span><span class="op">)</span>,Boundary.knots <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">19</span>,<span class="op">-</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>             subject <span class="op">=</span> <span class="st">"ID"</span>,data <span class="op">=</span> <span class="va">paquid_expo</span>,returndata <span class="op">=</span> <span class="cn">T</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">m_expo</span><span class="op">$</span><span class="va">AIC</span></span>
+<span><span class="co">#&gt; [1] 5660.193</span></span>
+<span><span class="va">m_expo2</span><span class="op">$</span><span class="va">AIC</span></span>
+<span><span class="co">#&gt; [1] 5647.986</span></span>
+<span><span class="va">m_expo3</span><span class="op">$</span><span class="va">AIC</span></span>
+<span><span class="co">#&gt; [1] 5637.312</span></span>
+<span><span class="va">m_expo4</span><span class="op">$</span><span class="va">AIC</span></span>
+<span><span class="co">#&gt; [1] 5630.255</span></span>
+<span></span>
+<span><span class="va">m_outcome</span><span class="op">&lt;-</span><span class="fu"><a href="../reference/WCEland.html">WCEland</a></span><span class="op">(</span>mexpo <span class="op">=</span> <span class="va">m_expo4</span>,var.time <span class="op">=</span> <span class="st">"time2"</span>,time.frame <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">10</span>,<span class="fl">0</span>,<span class="fl">1</span><span class="op">)</span>,weightbasis <span class="op">=</span> <span class="st">"NS"</span></span>
+<span>              ,knots.vector <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>knots<span class="op">=</span><span class="cn">NULL</span>, boundary.knots<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">19</span>,<span class="op">-</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span>,data <span class="op">=</span> <span class="va">paquid_outcome</span></span>
+<span>              ,reg.type <span class="op">=</span> <span class="st">"logistic"</span>,model <span class="op">=</span> <span class="va">HIER2</span><span class="op">~</span><span class="va">male</span><span class="op">+</span><span class="va">WCIE</span>,n_boot <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="print-the-result">Print the result<a class="anchor" aria-label="anchor" href="#print-the-result"></a>
+<h3 id="estimate-the-exposure-effect-with-more-than-0-knots">Estimate the exposure effect with more than 0 knots<a class="anchor" aria-label="anchor" href="#estimate-the-exposure-effect-with-more-than-0-knots"></a>
 </h3>
+<p>Similarly, the number of internal knots used to estimate the exposure
+effect (i.e., the weighting function) in the outcome model is also
+selected based on the Akaike Information Criterion (AIC). We compare
+several models with different knot configurations and retain the one
+that provides the best fit — that is, the model with the lowest AIC —
+for the binary health outcome of interest.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">m_outcome</span><span class="op">)</span></span>
+<span><span class="va">m_outcome2</span><span class="op">&lt;-</span><span class="fu"><a href="../reference/WCEland.html">WCEland</a></span><span class="op">(</span>mexpo <span class="op">=</span> <span class="va">m_expo4</span>,var.time <span class="op">=</span> <span class="st">"time2"</span>,time.frame <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">10</span>,<span class="fl">0</span>,<span class="fl">1</span><span class="op">)</span>,weightbasis <span class="op">=</span> <span class="st">"NS"</span></span>
+<span>              ,knots.vector <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>knots<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">10</span><span class="op">)</span>, boundary.knots<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">19</span>,<span class="op">-</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span>,data <span class="op">=</span> <span class="va">paquid_outcome</span></span>
+<span>              ,reg.type <span class="op">=</span> <span class="st">"logistic"</span>,model <span class="op">=</span> <span class="va">HIER2</span><span class="op">~</span><span class="va">male</span><span class="op">+</span><span class="va">WCIE</span>,n_boot <span class="op">=</span> <span class="fl">15</span><span class="op">)</span></span>
+<span></span>
+<span></span>
+<span><span class="va">m_outcome3</span><span class="op">&lt;-</span><span class="fu"><a href="../reference/WCEland.html">WCEland</a></span><span class="op">(</span>mexpo <span class="op">=</span> <span class="va">m_expo4</span>,var.time <span class="op">=</span> <span class="st">"time2"</span>,time.frame <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">10</span>,<span class="fl">0</span>,<span class="fl">1</span><span class="op">)</span>,weightbasis <span class="op">=</span> <span class="st">"NS"</span></span>
+<span>              ,knots.vector <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>knots<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">13</span>,<span class="op">-</span><span class="fl">7</span><span class="op">)</span>, boundary.knots<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">19</span>,<span class="op">-</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span>,data <span class="op">=</span> <span class="va">paquid_outcome</span></span>
+<span>              ,reg.type <span class="op">=</span> <span class="st">"logistic"</span>,model <span class="op">=</span> <span class="va">HIER2</span><span class="op">~</span><span class="va">male</span><span class="op">+</span><span class="va">WCIE</span>,n_boot <span class="op">=</span> <span class="fl">15</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">m_outcome</span><span class="op">$</span><span class="va">AIC</span></span>
+<span><span class="co">#&gt; [1] 195.3826</span></span>
+<span><span class="va">m_outcome2</span><span class="op">$</span><span class="va">AIC</span></span>
+<span><span class="co">#&gt; [1] 196.8968</span></span>
+<span><span class="va">m_outcome3</span><span class="op">$</span><span class="va">AIC</span></span>
+<span><span class="co">#&gt; [1] 196.8971</span></span></code></pre></div>
+<p>In model selection, a lower AIC suggests a better-fitting model.
+Therefore, we selected the model with 0 internal knots.</p>
+</div>
+<div class="section level3">
+<h3 id="description-of-the-wce-model">Description of the WCE model<a class="anchor" aria-label="anchor" href="#description-of-the-wce-model"></a>
+</h3>
+<div class="section level4">
+<h4 id="summary-of-the-model">summary of the model<a class="anchor" aria-label="anchor" href="#summary-of-the-model"></a>
+</h4>
+<p>The output above presents the full summary of the WCEland model fit.
+It includes:</p>
+<ul>
+<li><p><strong>Parameter Estimates (bootstrap-based):</strong>
+Coefficients of the outcome logistic model estimated using a weighted
+bootstrap approach. These include the estimated coefficients, standard
+errors, Wald test statistics, and p-values.</p></li>
+<li><p><strong>Goodness-of-fit statistics:</strong> Global fit metrics
+such as the maximum log-likelihood and the Akaike Information Criterion
+(AIC), which help evaluate and compare model adequacy.</p></li>
+<li><p><strong>Variance-covariance matrix:</strong> Estimated
+variance-covariance matrix of the model parameters, useful for inference
+and understanding parameter correlations.</p></li>
+<li><p><strong>Weighted cumulative exposure (WCE) effect
+summary:</strong> A table showing the time-specific estimated effects of
+past exposure on the outcome. For each lag time, the table includes the
+effect estimate, its standard error, the Wald statistic, and the
+associated p-value. This highlights how the influence of the exposure
+evolves over time.</p></li>
+<li><p><strong>Global WCE effect summary:</strong> Mean cumulative
+effect across time lags, its standard error, the overall Wald statistic,
+and p-value — providing a concise summary of the exposure effect over
+the entire time window.</p></li>
+</ul>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">m_outcome</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Weighted Cumulative Index Estimation (WCEland) </span></span>
 <span><span class="co">#&gt;      fitted by weighted bootstrap method </span></span>
 <span><span class="co">#&gt;  </span></span>
@@ -355,41 +446,82 @@ chosen internal knots.</p>
 <span><span class="co">#&gt; Outcome model type: logistic </span></span>
 <span><span class="co">#&gt;  </span></span>
 <span><span class="co">#&gt; Statistical Model: </span></span>
-<span><span class="co">#&gt;      Number of subjects: 500 </span></span>
-<span><span class="co">#&gt;      Number of subjects deleted: 0 </span></span>
+<span><span class="co">#&gt;      Number of subjects: 192 </span></span>
+<span><span class="co">#&gt;      Number of subjects deleted: 1 </span></span>
 <span><span class="co">#&gt;  </span></span>
 <span><span class="co">#&gt; Weighting basis: </span></span>
-<span><span class="co">#&gt; Number of bootstrap replications: 5 </span></span>
-<span><span class="co">#&gt; Time variable: time_expo </span></span>
+<span><span class="co">#&gt; Number of bootstrap replications: 10 </span></span>
+<span><span class="co">#&gt; Time variable: time2 </span></span>
 <span><span class="co">#&gt; Knots for weight basis: 0 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;  </span></span>
 <span><span class="co">#&gt; Parameter Estimates (bootstrap-based):</span></span>
 <span><span class="co">#&gt;  </span></span>
 <span><span class="co">#&gt;                 coef      Se   Wald p-value</span></span>
-<span><span class="co">#&gt; (Intercept)  3.93533 1.56798  2.510 0.01208</span></span>
-<span><span class="co">#&gt; male        -0.88886 0.20411 -4.355 0.00001</span></span>
-<span><span class="co">#&gt; WCIE1       -0.00619 0.00471 -1.315 0.18851</span></span>
-<span><span class="co">#&gt; WCIE2       -0.02089 0.02277 -0.917 0.35900</span></span>
+<span><span class="co">#&gt; (Intercept)  7.04987 4.71666  1.495 0.13500</span></span>
+<span><span class="co">#&gt; male        -1.21241 0.31423 -3.858 0.00011</span></span>
+<span><span class="co">#&gt; WCIE1       -0.00480 0.02410 -0.199 0.84203</span></span>
+<span><span class="co">#&gt; WCIE2       -0.01003 0.01932 -0.519 0.60353</span></span>
 <span><span class="co">#&gt;  </span></span>
 <span><span class="co">#&gt; Summary of Goodness-of-fit statistics (over all bootstrap samples):  </span></span>
-<span><span class="co">#&gt;      maximum log-likelihood: -285.869112035468  </span></span>
-<span><span class="co">#&gt;      AIC: 579.738224070936  </span></span>
+<span><span class="co">#&gt;      maximum log-likelihood: -93.6913167612526  </span></span>
+<span><span class="co">#&gt;      AIC: 195.382633522505  </span></span>
 <span><span class="co">#&gt;  </span></span>
 <span><span class="co">#&gt; Variance-covariance matrix:</span></span>
 <span><span class="co">#&gt;  </span></span>
-<span><span class="co">#&gt;              (Intercept)          male         WCIE1         WCIE2</span></span>
-<span><span class="co">#&gt; (Intercept)  2.458546808 -2.206401e-02 -7.311104e-03  3.026812e-02</span></span>
-<span><span class="co">#&gt; male        -0.022064012  4.166012e-02  4.184447e-06 -7.012327e-06</span></span>
-<span><span class="co">#&gt; WCIE1       -0.007311104  4.184447e-06  2.218801e-05 -9.685769e-05</span></span>
-<span><span class="co">#&gt; WCIE2        0.030268118 -7.012327e-06 -9.685769e-05  5.186441e-04</span></span>
+<span><span class="co">#&gt;             (Intercept)         male         WCIE1         WCIE2</span></span>
+<span><span class="co">#&gt; (Intercept) 22.24692217 -1.431273349 -0.0902474762  0.0435940544</span></span>
+<span><span class="co">#&gt; male        -1.43127335  0.098743584  0.0064733496 -0.0035807383</span></span>
+<span><span class="co">#&gt; WCIE1       -0.09024748  0.006473350  0.0005808478 -0.0004254980</span></span>
+<span><span class="co">#&gt; WCIE2        0.04359405 -0.003580738 -0.0004254980  0.0003733449</span></span>
+<span><span class="co">#&gt;  </span></span>
 <span><span class="co">#&gt;  </span></span>
 <span><span class="co">#&gt; Summary of weighted cumulative exposure effect:</span></span>
-<span><span class="co">#&gt;      Mean effect: -0.0039 </span></span>
-<span><span class="co">#&gt;      Se of effect: 0.0016</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/deparse.html" class="external-link">deparse</a></span><span class="op">(</span><span class="va">m_outcome</span><span class="op">$</span><span class="va">call</span><span class="op">)</span>, collapse <span class="op">=</span> <span class="st">" "</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "glm(formula = HIER2 ~ male + (WCIE1 + WCIE2), family = binomial,      data = data.outcome)"</span></span></code></pre></div>
+<span><span class="co">#&gt;  </span></span>
+<span><span class="co">#&gt; Weighted cumulative exposure effect per time observation:</span></span>
+<span><span class="co">#&gt;  </span></span>
+<span><span class="co">#&gt;    Time   Effect      Se   Wald p-value</span></span>
+<span><span class="co">#&gt; 1   -10 -0.00279 0.01131 -0.247 0.80498</span></span>
+<span><span class="co">#&gt; 2    -9 -0.00351 0.00990 -0.355 0.72277</span></span>
+<span><span class="co">#&gt; 3    -8 -0.00423 0.00853 -0.496 0.62014</span></span>
+<span><span class="co">#&gt; 4    -7 -0.00494 0.00725 -0.682 0.49493</span></span>
+<span><span class="co">#&gt; 5    -6 -0.00566 0.00609 -0.929 0.35292</span></span>
+<span><span class="co">#&gt; 6    -5 -0.00638 0.00517 -1.234 0.21717</span></span>
+<span><span class="co">#&gt; 7    -4 -0.00710 0.00460 -1.541 0.12328</span></span>
+<span><span class="co">#&gt; 8    -3 -0.00781 0.00454 -1.722 0.08514</span></span>
+<span><span class="co">#&gt; 9    -2 -0.00853 0.00499 -1.709 0.08740</span></span>
+<span><span class="co">#&gt; 10   -1 -0.00925 0.00584 -1.583 0.11344</span></span>
+<span><span class="co">#&gt; 11    0 -0.00996 0.00695 -1.434 0.15149</span></span>
+<span><span class="co">#&gt;  </span></span>
+<span><span class="co">#&gt;      Mean effect: -0.00638 </span></span>
+<span><span class="co">#&gt;      Se of effect: 0.00517 </span></span>
+<span><span class="co">#&gt;      Wald: -1.234 </span></span>
+<span><span class="co">#&gt;      p-value: 0.21717</span></span></code></pre></div>
+</div>
+<div class="section level4">
+<h4 id="plot-the-expsoition-trajectory-association">plot the expsoition trajectory association<a class="anchor" aria-label="anchor" href="#plot-the-expsoition-trajectory-association"></a>
+</h4>
+<p>The figure displays the estimated <strong>weighted cumulative
+exposure (WCE) effect</strong> trajectory over time. Each point on the
+x-axis represents a specific time lag preceding the outcome, while the
+y-axis shows the estimated effect of exposure at that time on the
+outcome.</p>
+<ul>
+<li>The <strong>grey curve</strong> shows the estimated time-varying
+exposure effect.</li>
+<li>The <strong>shaded area</strong> represents the 95% confidence
+interval around the estimate, obtained through bootstrap replicates and
+by using a delta method.</li>
+<li>The <strong>horizontal line at zero</strong> helps visualize whether
+the estimated effect is statistically different from no effect.</li>
+</ul>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">m_outcome</span><span class="op">)</span></span></code></pre></div>
+<p><img src="WCE_model_binary_files/figure-html/unnamed-chunk-7-1.png" width="700"></p>
+<p>This plot displays the estimated contribution of past exposure to the
+<strong>log-odds</strong> of experiencing the outcome, assuming exposure
+levels at all other time points are held constant.</p>
+</div>
 </div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

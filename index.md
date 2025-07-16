@@ -19,7 +19,7 @@ A detailed companion paper isn't available in Journal of Statistical Software :
 
 ## Install the package
 
-The mixWCE package needs version 4.5 or newer of the R software.
+The mixWCE package needs version >= 3.5.0 or newer of the R software.
 
 To get the most recent update, install it from github (to update i think) :
 
@@ -30,7 +30,6 @@ remotes::install_github("MatheoLeFloch29/mixWCE")
 The mixWCE package depends on other R package, namely :
 
 - survival (>=2.37-2) for dealing with the survival outcomes
-- mvrnorm for generating random parameters
 - MASS
 - lcmm
 - splines

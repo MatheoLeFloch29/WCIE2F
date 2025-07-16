@@ -191,7 +191,7 @@ doi : 10.1186/s12874-021-01403-w
 }
 \seealso{
 \code{\link{summary.WCEland}}
-\code{\link{WCEland}}
+\code{\link{WCIE2F}}
 \code{\link{doOneBootWCIE}}
 }
 \author{
