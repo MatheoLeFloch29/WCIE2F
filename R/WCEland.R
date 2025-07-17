@@ -173,6 +173,29 @@
 #' \code{\link{WCIE2F}}
 #' \code{\link{doOneBootWCIE}}
 #'
+#' @examples
+#' \dontrun{
+#' library(lcmm)
+#' # Fit linear mixed-effects model for exposure
+#' m_expo <- hlme(E ~ X + time,
+#'                random = ~ time,
+#'                subject = "ID",
+#'                data = data_expo,
+#'                returndata = TRUE)
+#'
+#' # Estimate weighted cumulative exposure effect in Cox model
+#' m_outcome <- WCEland(mexpo = m_expo,
+#'                      var.time = "time",
+#'                      time.frame = c(-10, 0, 1),
+#'                      weightbasis = "NS",
+#'                      knots = 1,
+#'                      data = data_outcome,
+#'                      reg.type = "cox",
+#'                      model = Surv(time, Y) ~ X + WCIE,
+#'                      n_boot = 500)
+#'
+#'  summary(m_outcome)
+#' }
 #'
 #' @references
 #' Maud Wagner et al. “Time-varying associations between an exposure history and a subsequent health
@@ -197,13 +220,13 @@ WCEland <- function(mexpo,var.time, time.frame, weightbasis="NS", knots=NULL,kno
   if(is.null(knots)==T&is.null(knots.vector)==T) stop("You must have to specify knots or knots.vector")
 
 
-  # Extraire la moyenne et la matrice de variance-covariance des paramètres estimés du modèle d'exposition
+  # Extract the mean and variance-covariance matrix of the estimated parameters from the exposure model
   mu <- as.matrix(estimates(mexpo))
   Sigma <- as.matrix(VarCov(mexpo))
 
-  # Pour passer de la cholesky à la variance :
+  # To convert from the Cholesky decomposition to the variance:
 
-  # Générer les nouvelles valeurs des paramètres bootstrap
+  # Generate new bootstrap parameter values
   boot_params <- MASS::mvrnorm(n = n_boot, mu = mu, Sigma = Sigma)
 
   NPROB = mexpo$N[1]
@@ -212,22 +235,22 @@ WCEland <- function(mexpo,var.time, time.frame, weightbasis="NS", knots=NULL,kno
   idiag0 = mexpo$idiag
   nea0 = sum(mexpo$idea0)
 
-  ######## passer de cholesky à varcov ##################
+  ######## Convert from Cholesky to variance-covariance matrix ##################
 
   if(idiag0==0 & NVC>0){
 
     for (i in 1:nrow(boot_params)) {
-      # Extraire les paramètres Cholesky de l'échantillon i
+      # Extract the Cholesky parameters of sample i
       Cholesky <- boot_params[i, (NPROB+NEF+1):(NPROB+NEF+NVC)]
 
-      # Construire la matrice triangulaire supérieure U
+      # Build the upper triangular matrix U
       U <- matrix(0, nrow = nea0, ncol = nea0)
       U[upper.tri(U, diag = TRUE)] <- Cholesky
 
-      # Transformer en matrice de variance-covariance
+      # Transform into the variance-covariance matrix
       varcov <- t(U) %*% U
 
-      # Remplacer dans boot_params
+      # Replace in boot_params
       boot_params[i, (NPROB+NEF+1):(NPROB+NEF+NVC)] <- varcov[upper.tri(varcov, diag = TRUE)]
     }
 
@@ -244,7 +267,7 @@ WCEland <- function(mexpo,var.time, time.frame, weightbasis="NS", knots=NULL,kno
   ########### start bootsrap ################
   ###########################################
 
-  # save all the bootstrap dans boot_result
+  # save all the bootstrap in boot_result
 
   boot_results <- lapply(1:n_boot, function(i) {
     doOneBootWCIE(i = i,boot_params=boot_params,
@@ -253,29 +276,28 @@ WCEland <- function(mexpo,var.time, time.frame, weightbasis="NS", knots=NULL,kno
                   data = data, reg.type = reg.type, model = model)}
   )
 
-  # remplacer la boucle for par un replicate qui utilise la fonction doOneBoot et qui sort :
-  # -une liste des paramètres estimés pour chaque bootstrap
-  # -une liste des matrices de variancecovariance
+  # Replace the for loop with a replicate that uses the doOneBoot function and returns:
+
+  # a list of estimated parameters for each bootstrap
+
+  # a list of variance-covariance matrices
 
   # parameters mean for n_boot bootstrap
   boot_est <- sapply(boot_results, function(x) x[[1]])
-  # reprendre ici et faire mean
-
-
 
   ## Intra-individual variability
   var_intra <- Reduce("+",lapply(boot_results, function(x) x[[2]]))/n_boot
 
 
-  ## Inter-individual variability (formule pour bootsrap de rubin)
+  ## Inter-individual variability (formula for bootsrap from rubin)
   #(M+1)/(M(M-1))sum(teta-mean(teta)²)
   mean_boot_est <- apply(boot_est, 1, function(x) mean(x))
 
   somme_var_var <- Reduce("+", lapply(1:ncol(boot_est), function(i) {
-    (boot_est[, i] - mean_boot_est) %*% t(boot_est[, i] - mean_boot_est)# fait la somme des teta-mean(teta)²
+    (boot_est[, i] - mean_boot_est) %*% t(boot_est[, i] - mean_boot_est)# do the sum of teta-mean(teta)²
   }))
 
-  var_inter <- ((n_boot + 1)/(n_boot*(n_boot-1)))*somme_var_var #applique le (M+1)/(M(M-1))
+  var_inter <- ((n_boot + 1)/(n_boot*(n_boot-1)))*somme_var_var #do the (M+1)/(M(M-1))
   rownames(var_inter)<-colnames(var_intra)
 
 
@@ -290,36 +312,39 @@ WCEland <- function(mexpo,var.time, time.frame, weightbasis="NS", knots=NULL,kno
   # Var tot parameters
   var_tot <- var_inter + var_intra
 
-  # récupérer la diagonale pour récupérer la variance corrigée avec le bootstrap
+  # Extract the diagonal to obtain the bootstrap-corrected variance.
   var_estim<-as.matrix(diag(var_tot))
 
-  # calcul écart type
+  # SE calcul
   parameters_var<-cbind(mean_boot_est, sqrt(var_estim))
   colnames(parameters_var) <- c("Estimate","Se")
   parameters_var <- as.data.frame(parameters_var)
 
-  #calculer les IC
+  #IC calcul
   parameters_var$con.low <- parameters_var$Estimate - qnorm(0.975)  * (parameters_var$Se)
   parameters_var$conf.high <- parameters_var$Estimate + qnorm(0.975)  * (parameters_var$Se)
 
-  #calculer la stat de test
+  # statistical test value
   parameters_var$z_value <- parameters_var$Estimate / (parameters_var$Se)
 
-  #calculer la p-valeur (pour une loi normal)
+  #p-valeur (for normal law)
   parameters_var$p_values <- 2 * (1 - pnorm(abs(parameters_var$z_value)))
   #}
 
 
 
   #######################################################################################
-  #################### calcul des effets de l'expositon #################################
+  #################### Calculation of the exposure effects ##############################
   #######################################################################################
 
 
-  # faire tourner un modèle pour quand même récupérer les nouvelles données (dans la nouvelle fenêtre)
-  # les nouvelles data du modèle d'expo et avec l'outcome
-  # le call du modèle d'exposition
-  # utiliser pour le calcul des effets de l'exposition passée dans le temps
+  # Run a model to retrieve the updated data (within the new time window)
+
+  #Get the updated exposure model data along with the outcome data
+
+  #Save the call of the exposure model
+
+  #Use these for calculating the effects of past exposure over time
 
   WCIE <- WCIE2F(mexpo = mexpo,var.time = var.time, times = time.frame,
                          weightbasis = weightbasis, knots = knots,knots.vector=knots.vector,
@@ -329,24 +354,24 @@ WCEland <- function(mexpo,var.time, time.frame, weightbasis="NS", knots=NULL,kno
   data_outcome <- WCIE$data_outcome #data outcome
 
   n <- n_distinct(data_outcome) # subject nb
-  n_obs <- nrow(data_outcome) # nb d'observation total
-  nb_subject_delete <- n_distinct(data)-n # nombre de sujet enlevee
-  nb_obs_delete <- nrow(data)-n_obs # nb d'observation enlevee
+  n_obs <- nrow(data_outcome) # nb total observation
+  nb_subject_delete <- n_distinct(data)-n # Number of subjects removed
+  nb_obs_delete <- nrow(data)-n_obs # Number of observations removed
 
   mean_AIC <- mean(sapply(boot_results, function(x) x$AIC)) #mean AIC bootstrap
   mean_loglike <- mean(sapply(boot_results, function(x) x$loglike)) #mean loglikelihood bootstrap
 
-  # mettre une condition sur le type d'outcome
+  # Put a condition based on the outcome type
   if(reg.type=="logistic"|reg.type=="cox"){
 
-    ##################### repérer si il y a des intéractions dans le modèle #####################
+    ##################### Detect if there are any interactions in the model #####################
 
-    # Identifier toutes les interactions contenant "WCIEX" (avant ou après le :)
+    # Identify all interactions containing "WCIEX" (either before or after the colon :)
     var <- grep("WCIE[0-9]+:", rownames(parameters_var), value = TRUE)
     var <- c(var, grep(":WCIE[0-9]+$", rownames(parameters_var), value = TRUE))
 
     ##################################################################
-    ########### si pas d'interaction alors faire ça ##################
+    ########### If there is no interaction, then do this. ############
     ##################################################################
 
     # new matrice spline to compile the effect
@@ -358,87 +383,88 @@ WCEland <- function(mexpo,var.time, time.frame, weightbasis="NS", knots=NULL,kno
     new_splines <- as.matrix(ns(unlist(data_splines),knots = WCIE$splines.quantiles,
                                 Boundary.knots = WCIE$boundary.quantiles,
                                 intercept = TRUE))
-    # renommer WCIE1:WCIEk
+    # rename WCIE1:WCIEk
     colnames(new_splines) <- paste0("WCIE", 1:ncol(new_splines))
 
-    # faire une première boucle sur les WCIE sans intéraction
+    # Loop first over the WCIE terms without interaction.
 
-    # Calculer l'effet total avec une boucle
+    # Calculate the total effect using a loop.
     effect <- data.frame(time=data_splines,eff_expo=0)
 
     effect <- effect %>% arrange(effect[1])
-    # si il y a pas d'intéraction - faire juste une boucle sur les WCIE
+    # If there are no interactions, perform a single loop over the WCIE terms only.
     for (s in 1:dim(new_splines)[2]){
       effect$eff_expo <- effect$eff_expo + parameters_var[paste0("WCIE",s),"Estimate"]*new_splines[,s]
     }
 
     #################################################################
-    ###### si présence d'intéraction alors faire ça : ###############
+    ###### If interactions are present, proceed as follows : ########
     #################################################################
 
     if(length(var)>0){
 
-      # variable présente dans le modèle
+      # variable present in the model
       vars_model <- all.vars(formula(model))
-      # Variables communes entre les deux
+      # Common variables between the two
       vars_communes <- intersect(names(data_cov_int),vars_model)
-      # recréer le jeu de donnée avec les mêmes valeurs
+      # recreate the dataset with the same values
 
-      # pour que model.matrix fonctionne il doit y avoir au moins deux lignes dans data_cov_int
-      # donc créer une deuxième ligne factice et la supprimer après avoir récupérer le bon nom de variable
+      # for model.matrix to work, there must be at least two rows in data_cov_int
+      # so create a second dummy row and delete it after retrieving the correct variable name
 
-      # Extraire les variables catégorielles du modèle initial
+      # Extract the categorical variables from the initial model
       vars_categorielle <- names(Filter(is.factor, model$model))
 
-      # Appliquer les mêmes niveaux aux variables catégorielles du nouveau dataset
-      # obliger a ne pas mettre le as.factor dans le modèle
+      # Apply the same levels to the categorical variables in the new dataset
+      #(must avoid using as.factor directly in the model)
       for (var_cat in vars_categorielle) {
 
         if (var_cat %in% names(data_cov_int)) {
-          niveaux <- levels(model$model[[var_cat]])  # Récupérer les niveaux du modèle
-          data_cov_int[[var_cat]] <- factor(data_cov_int[[var_cat]], levels = niveaux)  # Appliquer
+          niveaux <- levels(model$model[[var_cat]])  # Retrieve the factor levels from the model
+          data_cov_int[[var_cat]] <- factor(data_cov_int[[var_cat]], levels = niveaux)  # applicate
         }
       }
 
-      # Générer la nouvelle matrice avec les mêmes variables que dans le modèle
+      # Generate the new matrix with the same variables as in the model
       new_data_cov_int <- model.matrix(as.formula(paste("~", paste(colnames(data_cov_int), collapse = " + "))), data = data_cov_int)[,-1]
       new_data_cov_int <- as.data.frame(t(new_data_cov_int))
 
-      # si une variable laisser new_data_cov_int comme celui de base
+      # If a variable, keep new_data_cov_int the same as the original
       if(ncol(data_cov_int)==1 & ncol(new_data_cov_int)==1){
         new_data_cov_int<-data_cov_int
       }
 
       doOneBoot_effectInt<-function(i){
 
-        # Faire une boucle sur l'ensemble des variables WCIE sans interaction
+        # Loop over all WCIE variables without interaction
         effect <- data.frame(time=data_splines,eff_expo=0)
         effect <- effect %>% arrange(effect[1])
-        # si il y a pas d'intéraction - faire juste une boucle sur les WCIE
+        # If there is no interaction, just loop over the WCIE variables
         for (s in 1:dim(new_splines)[2]){
           effect$eff_expo <- effect$eff_expo + boot_est[i,paste0("WCIE",s)]*new_splines[,s]
         }
 
-        ######### + rajouter les intéractions #############
+        ######### + ad the interactions #############
 
         for(q in 1:ncol(new_data_cov_int)){
 
-          # repérer la place des intéraction
+          # Identify the position/index of the interactions
           repaire <- grep(paste0(colnames(new_data_cov_int)[q],"."), colnames(boot_est),value = T)
           repaire <- c(repaire, grep(paste0(".",colnames(new_data_cov_int)[q]), colnames(boot_est),value = T))
 
-          #si 1 variable en interaction alors repasser sous forme de chiffre l'unique valeur pour pouvoir utiliser new_data_cov_int
-          p<-1 #si plusieurs covariable intéraction alors réinitialise le compteur des splines à 1
+          # If there is 1 variable in interaction, convert its single value back to numeric
+          # in order to use new_data_cov_int correctly
+          p<-1 # If multiple covariates are in interaction, reset the spline counter to 1
           if (dim(new_data_cov_int)[2]==1) {
             new_data_cov_int2 <- data_cov_int[1,1]
             for (g in 1:length(repaire)) {
-              #rajouter valeur
+              #ad value
               effect$eff_expo <- effect$eff_expo + boot_est[i,repaire[g]] * new_splines[,p] * new_data_cov_int2[q]
               p <- ifelse(p == (knots + 1), 1, (p + 1))
             }
           }else{
             for (g in 1:length(repaire)) {
-              #rajouter valeur
+              #ad value
               effect$eff_expo <- effect$eff_expo + boot_est[i,repaire[g]] * new_splines[,p] * new_data_cov_int[,q]
               p <- ifelse(p == (knots + 1), 1, (p + 1))
             }
@@ -455,16 +481,16 @@ WCEland <- function(mexpo,var.time, time.frame, weightbasis="NS", knots=NULL,kno
     }
 
 
-    ### si pas d'interaction alors le calcul de la variance des effets se fait ainsi :
+    ### If no interaction, then the variance of the effects is calculated as follows:
 
     if(length(var)==0){
 
-      # 1) récupérer la matrice de variance co-variances qui nous intéressent
-      # Stocker les résultats dans la matrice
+      # 1) Retrieve the variance-covariance matrix of interest
+      # Store the results in the matrix
       eff_varCov_tot <- var_tot[grepl("WCIE\\d+", rownames(var_tot)),
                                 grepl("WCIE\\d+", colnames(var_tot))]
 
-      # 2) calculer la variance pour chaque temps v(w(t))=B(t)'v(teta)B(t)
+      # 2) Calculate the variance for each time point: v(w(t)) = B(t)' * V(theta) * B(t)
       effect <- as.data.frame(effect)
       effect$var_eff <- 0
       for(z in 1:nrow(effect)){
@@ -475,25 +501,25 @@ WCEland <- function(mexpo,var.time, time.frame, weightbasis="NS", knots=NULL,kno
 
     }
 
-    ### si présence d'intéraction alors faire ça : (à faire vérifier car pas sûr)
+    ### If interactions are present, then do this: (to be verified as not certain)
     if(length(var)>0){
 
-      # 1) récupérer la matrice de variance co-variances qui nous intéressent (avec les intéractions)
+      # 1) Extract the relevant variance-covariance matrix (including interactions)
 
-      # Stocker les résultats dans la matrice
+      # Store the results in the matrix
       eff_varCov_tot <- var_tot[grepl("WCIE\\d+", rownames(var_tot)),
                                 grepl("WCIE\\d+", colnames(var_tot))]
 
-      # 2) calculer la variance pour chaque temps v(w(t))=B(t)'v(teta)B(t) en prenant en compte l'intéraction
+      # 2) Calculate the variance for each time point v(w(t)) = B(t)' * v(theta) * B(t) taking interactions into account
 
-      #Créer la matrice des splines*les intéraction (autant de fois qu'il y a d'intéraction) B(t)
-      # code à revoir (pas sûr mais semble ok)
+      # Create the matrix of splines multiplied by interactions (as many times as there are interactions) B(t)
+      # code to review (not certain but seems okay)
 
-      # sinon si présence de variable catégorielle alors créer la matrice splines*intéraction de cette manière
+      # Otherwise, if there is a categorical variable, create the splines*interaction matrix as follows
       new_matheo<-matrix(0,nrow = nrow(new_splines),ncol = nrow(eff_varCov_tot))
       colnames(new_matheo) <- colnames(eff_varCov_tot)
 
-      # ajouter les valeurs des splines aux endroits correspondants
+      # Add the spline values at the corresponding positions
       for (k in 1:ncol(new_splines)) {
         for (f in 1:ncol(new_matheo)) {
           if(grepl(colnames(new_splines)[k], colnames(new_matheo)[f])){
@@ -501,7 +527,7 @@ WCEland <- function(mexpo,var.time, time.frame, weightbasis="NS", knots=NULL,kno
           }
         }
       }
-      # multiplier les valeurs avec les covariables lorsqu'il y a une intéraction
+      # Multiply the spline values by the covariates when there is an interaction
       for (k in 1:ncol(new_data_cov_int)) {
         for (f in 1:ncol(new_matheo)) {
           if(grepl(colnames(new_data_cov_int)[k], colnames(new_matheo)[f])){
@@ -511,7 +537,7 @@ WCEland <- function(mexpo,var.time, time.frame, weightbasis="NS", knots=NULL,kno
       }
 
 
-      # faire le calcul de V(w(t))
+      # Calculate V(w(t))
       effect <- as.data.frame(effect)
       effect$var_eff <- 0
       for(z in 1:nrow(effect)){
@@ -522,32 +548,32 @@ WCEland <- function(mexpo,var.time, time.frame, weightbasis="NS", knots=NULL,kno
 
 
 
-    # calculer l'interval de confiance des effets
+    # Calculate the confidence interval of the effects
 
     effect$var_eff <- sqrt(effect$var_eff)
     colnames(effect) <- c("Time","Effect","sd")
     effect <- as.data.frame(effect)
 
-    #calculer les IC
+    # Calculate the confidence intervals (CI)
     effect$conf.low <- effect$Effect - qnorm(0.975)  * (effect$sd)
     effect$conf.high <- effect$Effect + qnorm(0.975)  * (effect$sd)
 
 
-    # calculer l'effet moyen de 0 à -T
-    # calculer l'effet moyen wbarre = 1/T+1 somme(w(u))
+    # Calculate the average effect from 0 to -T
+    # Compute the mean effect w_bar = (1 / (T + 1)) * sum(w(u))
     mean_effect <- mean(effect$Effect)
     #mean_effect <- mean(effect[[2]], na.rm = T)
 
     #################################################################################
-    ############# calcul de la variance de l'effet moyen ############################
+    ############## Calculate the variance of the average effect #####################
     #################################################################################
 
-    # si pas d'interaction
+    # if no interactions
     if (length(var)==0) {
 
     means_splines <- apply(new_splines,2,FUN = mean)  #1/T+1(B(t))
 
-    # var intra de l'effet moyen par delta méthode
+    # Calculate the intra-bootstrap variance of the average effect using the Delta method
     var_intra_boot <- numeric(length(boot_results))
     for (h in 1:length(boot_results)) {
       mat_vcov <- boot_results[[h]][2]$V  # Vcov matrix for each bootstrap sample
@@ -558,7 +584,7 @@ WCEland <- function(mexpo,var.time, time.frame, weightbasis="NS", knots=NULL,kno
     var_intra_mean_effect <- mean(var_intra_boot)
 
 
-    # var inter de l'effet moyen par formule de Rubin
+    # Calculate the inter-bootstrap variance of the average effect using Rubin's formula
     #(M+1)/(M(M-1))sum(Xbar-mean(Xbar)²)
 
     data_splines <- seq(from=time.frame[1],to=time.frame[2],by=time.frame[3]) # sequence de mesure dans la fenêtre choisis
@@ -567,18 +593,18 @@ WCEland <- function(mexpo,var.time, time.frame, weightbasis="NS", knots=NULL,kno
     new_splines <- as.matrix(ns(unlist(data_splines),knots = WCIE$splines.quantiles,
                                 Boundary.knots = WCIE$boundary.quantiles,
                                 intercept = TRUE))
-    # renommer WCIE1:WCIEk
+    # rename WCIE1:WCIEk
     colnames(new_splines) <- paste0("WCIE", 1:ncol(new_splines))
 
     effect_mean <- data.frame(time=data_splines,eff_expo=0)
     effect_list <- replicate(length(boot_results), effect_mean, simplify = FALSE)
-    # faire une première boucle sur tout les estimations bootstrap
+    # Perform a first loop over all bootstrap estimates
     for (h in 1:length(boot_results)) {
 
-    # Calculer l'effet total avec une boucle
+      # Calculate the total effect using a loop
       effect_mean <- data.frame(time=data_splines,eff_expo=0)
       effect_mean <- effect_mean %>% arrange(effect_mean[1])
-    # si il y a pas d'intéraction - faire juste une boucle sur les WCIE
+      # If there are no interactions, just loop over the WCIE variables
       for (s in 1:dim(new_splines)[2]){
         effect_mean$eff_expo <- effect_mean$eff_expo + boot_results[[h]]$coef[paste0("WCIE",s)]*new_splines[,s]
       }
@@ -588,25 +614,25 @@ WCEland <- function(mexpo,var.time, time.frame, weightbasis="NS", knots=NULL,kno
     mean_effect_boot <- sapply(effect_list, function(df) mean(df$eff_expo))
 
     somme_var_var_effect <- Reduce("+", lapply(1:ncol(boot_est), function(i) {
-      (mean_effect_boot[i] - mean(mean_effect_boot)) %*% t(mean_effect_boot[i] - mean(mean_effect_boot))# fait la somme des wbar-mean(wbar)²
+      (mean_effect_boot[i] - mean(mean_effect_boot)) %*% t(mean_effect_boot[i] - mean(mean_effect_boot))# do the sum of wbar-mean(wbar)²
     }))
 
-    var_inter_mean_effect <- ((n_boot + 1)/(n_boot*(n_boot-1)))*somme_var_var_effect #applique le (M+1)/(M(M-1))
+    var_inter_mean_effect <- ((n_boot + 1)/(n_boot*(n_boot-1)))*somme_var_var_effect #applicate the (M+1)/(M(M-1))
     real_mean_var_effect <- var_intra_mean_effect + as.numeric(var_inter_mean_effect)
 
 
-    ###### version simple de calculer la variance de l'effet moyen par delta methode
-    #real_mean_var_effect <- t(means_splines) %*% eff_varCov_tot %*% means_splines #v(wbarre)
-    ## estimation presque similaire à celle faite par delta methode + rubin
+    ###### Simple version to calculate the variance of the mean effect using the delta method
+    # real_mean_var_effect <- t(means_splines) %*% eff_varCov_tot %*% means_splines  # v(w̄)
+    # This estimate is almost similar to the one obtained by the delta method combined with Rubin's formula
 
     mean_variable_effect <- sqrt(real_mean_var_effect)
     }
 
-    # ajouter si il y a des interactions
+    # Add a condition to check if there are interactions
 
 
     ###########################################################
-    ############ faire le graph si ok #########################
+    ############ do the graph if is ok ########################
     ###########################################################
 
 
@@ -614,10 +640,10 @@ WCEland <- function(mexpo,var.time, time.frame, weightbasis="NS", knots=NULL,kno
 
     # Effect - Intercept
     graph_effect <- ggplot(effect, aes(x=as.factor(Time), y=Effect, group = 1)) +
-      geom_line(color="darkgray", linewidth=1)+  # Remplace le boxplot par une ligne
-      geom_line(aes(y=conf.low), linetype="dashed", color="black") +  # Bord inférieur en pointillé
-      geom_line(aes(y=conf.high), linetype="dashed", color="black") +  # Bord supérieur en pointillé
-      geom_ribbon(aes(ymin=conf.low, ymax=conf.high), fill="gray", alpha=0.3, linetype="dashed") +  # Ajout IC en pointillé
+      geom_line(color="darkgray", linewidth=1)+  # Replace the boxplot with a line plot
+      geom_line(aes(y=conf.low), linetype="dashed", color="black") +  # Add a dashed lower boundary line
+      geom_line(aes(y=conf.high), linetype="dashed", color="black") +  # Add a dashed upper boundary line
+      geom_ribbon(aes(ymin=conf.low, ymax=conf.high), fill="gray", alpha=0.3, linetype="dashed") +  # ad IC in dash
       theme(legend.position = "none") +
       xlab("Time preceding landmark") +
       ylab("Estimate") +
@@ -638,7 +664,7 @@ WCEland <- function(mexpo,var.time, time.frame, weightbasis="NS", knots=NULL,kno
                 expositioneffect=effect,
                 mexpo=WCIE[[3]],reg.type=reg.type,mean.effect=mean_effect,
                 sd.mean.effect=mean_variable_effect,nboot = n_boot,
-                call=WCIE$call, #séparé les différentes parties du call (à faire)
+                call=WCIE$call,
                 knots.quantile=WCIE$splines.quantiles,V=var_tot,var.time=var.time,AIC=mean_AIC
                 ,loglike=mean_loglike,n=n,nb.subj.del=nb_subject_delete,
                 time.processing=cost)

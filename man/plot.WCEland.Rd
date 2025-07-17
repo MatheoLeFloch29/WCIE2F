@@ -17,7 +17,3 @@ Prints a plot of the exposition historic effects estimates.
 \description{
 summary.WCIE2F
 }
-\examples{
-\dontrun{
-}
-}

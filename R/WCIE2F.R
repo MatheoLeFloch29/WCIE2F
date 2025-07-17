@@ -124,45 +124,43 @@ WCIE2F <- function(mexpo,var.time, times,
                            weightbasis, knots, knots.vector, data, reg.type, model){
 
   #####################################################
-  ##### 1) prediction individuelle de l'exposition ####
+  ##### 1) Individual prediction of exposure ##########
   #####################################################
 
-  # fenêtre d'exposition souhaitée par l'utilisateur
+  # exposure window chosen by the user
   timerange_min <- times[1]
   timerange_max <- times[2]
 
-  # Créer un jeu de données avec le même nb d'individu et le bon nombre de ligne par individu
+  # Create a dataset with the same number of individuals and the correct number of rows per individual
 
-  time_seq <- seq(from=timerange_min,to=timerange_max,by=times[3]) # sequence de mesure dans la fenêtre choisis
-
-
-  nb_ind <- mexpo$ns  # nb d'individu
-  id_seq<-mexpo$pprob[[mexpo$call[[4]]]] # séquence d'identifiant utilisée dans le modèle (en vecteur)
+  time_seq <- seq(from=timerange_min,to=timerange_max,by=times[3]) # mesure sequences in the time window select
+  nb_ind <- mexpo$ns  # nb subsject
+  id_seq<-mexpo$pprob[[mexpo$call[[4]]]] # ID sequence use in the model (in vector)
 
   #new_data <- data.frame(id= rep(id_seq, each = length(time_seq))) # reprendre la séquence d'ID données par les data de l'individu
 
 
-  # renommer l'identifiant comme celui de l'utilisateur
+  # rename the identifier like the user's
   #colnames(new_data)[1]<- mexpo$call[[4]]
 
-  # tire une séquence pour chaque individu de la fenêtre qu'il veut analyser
+  # draw a sequence for each individual of the window they want to analyze
   #new_data[var.time] <- rep(time_seq, nb_ind)
 
-  # si on rajoute de l'aléatoire sur la date de visite (chiffre à virgule plutôt que entier)? voir si
-  # on arrive à estimer plus de WCIE
+  # if adding randomness on the visit date (decimal instead of integer)? see if
+  # we can estimate more WCIE
 
-  # Génération de la table avec temps irréguliers pour chaque individu
+  # Generation of the table with irregular times for each individual
   new_data <- do.call(rbind, lapply(id_seq, function(id) {
-    # Ajouter un bruit aléatoire à chaque point de temps "arrondir à n_after pour correspondre step_fixe
+    # Add random noise to each time point (round to n_after to match step_fixed)
     t_ind <- time_seq + runif(length(time_seq), 0, 0)
 
-    # (optionnel) Forcer le dernier point à être exactement times[2] si il est = 0
+    # Force the last point to be exactly times[2] if it is equal to 0
     if (timerange_max == 0) t_ind[length(t_ind)] <- timerange_max
     data.frame(id = id, time = t_ind)
-    # on peut faire pareil pour la première valeur
+    # We can do the same for the first value
   }))
 
-  # renommer comme l'utilisateur
+  # Rename as the user
   colnames(new_data)[1]<- mexpo$call[[4]]
   colnames(new_data)[2]<- var.time
 
@@ -170,78 +168,77 @@ WCIE2F <- function(mexpo,var.time, times,
 
 
   #########################################################################################################################
-  ###################### prendre en compte les différentes fonctions du temps possible que l'utilisateur peut rentrer #####
+  ######### Handle the different possible time functions that the user can provide ################################
   #########################################################################################################################
 
 
-  ######################## si la personne utilise des bs/ns/PF directement dans le modèle #################################
-  # obligation de demander de remplir directementla fonction dans la formule du modèle hlmr sinon impossible de connaitre ce que la personne à
-  # utiliser comme fonction
+  ######################## if the user uses bs/ns/PF directly in the model ##############################
+  # must require the user to directly specify the function in the hlmr model formula,
+  # otherwise it is impossible to know which function they used
 
-
-  # recup covariable utilisé dans le modèle
+  # retrieve covariates used in the model
   covar<-mexpo$Xnames2[!mexpo$Xnames2 %in% var.time][-1]
 
   value_fixe_covar <- distinct(mexpo$data[c(covar,mexpo$call[[4]])])
   new_data <- merge(new_data, value_fixe_covar, by = mexpo$call[[4]])
 
-  ######## predexpo ###############
+  ######## exposition prediction ###############
 
-# si pas d'effets aléatoires alors faire ça :
+  # if no random effects, then do this:
 
-# si forme du temps pour les effets aléatoires uniquement alors faire ça
-# recompile les effets aléatoires pour la nouvelle fenêtre de données (pour n'importe quelle fonction du temps ou pas)
+  # if time form is only for random effects, then do this
+  # recompile random effects for the new data window (for any time function or not)
   variable_RE <- model.matrix(as.formula(paste("~", mexpo$call[[3]][2])), data = new_data[var.time])
 
-# si même forme du temps pour les effets aléatoires alors :
-# faire une boucle sur les prédictions car on peut que faire une seul à la fois
+  # if the same time form is used for random effects then:
+  # loop over the predictions because we can only do one at a time
   new_data$Ypred <- NA
   for (n in id_seq) {
-    #récupérer les random effect de l'individu n
+    # retrieve the random effects of individual n
     truc <- mexpo$predRE[mexpo$predRE[[mexpo$call[[4]]]]==n,]
     data_pred<-new_data[new_data[[mexpo$call[[4]]]]==n,]
 
-    # faire la prediction de cette individu
+    # make the prediction for this individual
     new_pred<-predictY(mexpo,newdata = data_pred,
                        predRE = truc,var.time = var.time
                        )
 
-    # merge ces prédictions au new_data
+    # merge these predictions into new_data
     new_data$Ypred[new_data[[mexpo$call[[4]]]]==n] <- new_pred$pred
   }
 
-  ######### +  les predRE si il y  a des effets aléatoire dans le modèle ############
+  ######### + the predRE if there are random effects in the model ############
 
-  # récupérer les paramêtres des effets aléatoires du model et les renommer (prendre en compte la présence d'un intercept aléatoire)
-  #predRE <- mexpo$predRE
-  #if((grepl("^-1", as.character(mexpo$call$random)[2])==F)){
-  #  variable_RE <- variable_RE[,-1] # enlever l'intercept du varRE généré par le model.matrix
-  #  for (h in 1:(ncol(predRE)-2)) {
-  #    colnames(predRE)[h+2] <- paste0("predRE",h)
-  #  }
-  #}else{ # si pas d'intercept aléatoire
-  #  for (h in 1:(ncol(predRE)-1)) {
-  #    colnames(predRE)[h+1] <- paste0("predRE",h)
-  #  }
-  #}
-  #new_data <- merge(new_data, predRE,by =  mexpo$call[[4]]) #merge les predRE (effets aléatoires) par individu
+  # retrieve the parameters of the random effects from the model and rename them (taking into account the presence of a random intercept)
+  # predRE <- mexpo$predRE
+  # if((grepl("^-1", as.character(mexpo$call$random)[2])==FALSE)){
+  #   variable_RE <- variable_RE[,-1] # remove the intercept from varRE generated by model.matrix
+  #   for (h in 1:(ncol(predRE)-2)) {
+  #     colnames(predRE)[h+2] <- paste0("predRE", h)
+  #   }
+  # } else { # if no random intercept
+  #   for (h in 1:(ncol(predRE)-1)) {
+  #     colnames(predRE)[h+1] <- paste0("predRE", h)
+  #   }
+  # }
+  # new_data <- merge(new_data, predRE, by = mexpo$call[[4]]) # merge the predRE (random effects) by individual
 
-  # si présence d'un intercept aléatoire alors le rajouter dans le calcul de la prédiction
-  #if(grepl("^-1", as.character(mexpo$call$random)[2])==F){
-  #  new_data$Ypred <- new_data$Ypred + new_data$intercept
-  #}
+  # if a random intercept is present, then add it in the prediction calculation
+  # if(grepl("^-1", as.character(mexpo$call$random)[2])==FALSE){
+  #   new_data$Ypred <- new_data$Ypred + new_data$intercept
+  # }
 
-  # predictY + effet aléatoire*variableRE
-  # si au moins 2 colonnes alors faire la boucle sinon pas de boucle (else)
-  #if(is.vector(variable_RE)==F) {
-  #  for (m in 1:(ncol(variable_RE))) {
-  #    new_data$Ypred <- new_data$Ypred +
-  #      (variable_RE[,m]*new_data[paste0("predRE",m)])
-  #  }
-  #}else{
-  #  new_data$Ypred <- new_data$Ypred +
-  #    (variable_RE*new_data["predRE1"])
-  #}
+  # predictY + random effect * variableRE
+  # if at least 2 columns then loop, otherwise no loop (else)
+  # if(is.vector(variable_RE)==FALSE) {
+  #   for (m in 1:(ncol(variable_RE))) {
+  #     new_data$Ypred <- new_data$Ypred +
+  #       (variable_RE[,m] * new_data[paste0("predRE", m)])
+  #   }
+  # } else {
+  #   new_data$Ypred <- new_data$Ypred +
+  #     (variable_RE * new_data["predRE1"])
+  # }
 
   ################################################################################################################
 
@@ -249,7 +246,7 @@ WCIE2F <- function(mexpo,var.time, times,
 
 
   ##########################################################
-  ###### 2) Récupérer l'historique d'exposition ############
+  ###### 2) Retrieve the exposure history ##################
   ##########################################################
   data_expo_pred <- new_data
 
@@ -259,19 +256,19 @@ WCIE2F <- function(mexpo,var.time, times,
 
 
     if (is.null(knots)==F) {
-      # Créer un vecteur de probabilités (par exemple 5 quantiles => 0.2, 0.4, 0.6, 0.8, 1)
+      # Create a vector of probabilities (for example 5 quantiles => 0.2, 0.4, 0.6, 0.8, 1)
       probs <- seq(0, 1, length.out = knots+2)
       probs <- probs[-c(1, length(probs))]
 
       b5  <- quantile(data_expo_pred[var.time],probs = c(0.05),na.rm=T)
       b95 <- quantile(data_expo_pred[var.time],probs = c(0.95),na.rm=T)
-      # Calculer les quantiles automatiquement
+      # Automatically calculate the quantiles
       quantiles <- quantile(data_expo_pred[var.time], probs = probs, na.rm = TRUE)
     }
 
 
     if (is.null(knots.vector)==F) {
-      # si quantile choisis arbitrairement
+      #If quantiles are chosen arbitrarily
       quantiles<-c(knots.vector$knots)
 
       b5  <- knots.vector$boundary.knots[1]
@@ -279,24 +276,24 @@ WCIE2F <- function(mexpo,var.time, times,
 
     }
 
-    ## splines recompile
+    #Recompile splines
     B2K <- as.matrix(ns(unlist(data_expo_pred[var.time]),knots = quantiles,
                         Boundary.knots = c(b5, b95),
                         intercept = T))
 
     data_expo_pred <-cbind(data_expo_pred,B2K)
 
-    ## faire la prédiction * les nouveaux splines (Xi(Tu)*Bk(Tu))
+    ## Make the prediction * the new splines (Xi(Tu) * Bk(Tu))
     for (r in 1:length(colnames(B2K))) {
       data_expo_pred[paste0("COCO",r)] <- data_expo_pred$Ypred * data_expo_pred[colnames(B2K)[r]]
-    } #Xi fois les Bk
+    } #Xi *  Bk
 
-    # somme cummulé pondéré des expositions (sum(Xi*Bk)=Fki)
+    # Weighted cumulative sum of exposures (sum(Xi * Bk) = Fki)
     data_cum <- unique(data_expo_pred[mexpo$call[[4]]])
     for (r in 1:length(colnames(B2K))) {
       WCIE<-aggregate(data_expo_pred[[paste0("COCO", r)]] ~ data_expo_pred[[mexpo$call[[4]]]],
                       data = data_expo_pred, FUN = sum)
-      colnames(WCIE)<-c(mexpo$call[[4]],paste0("WCIE", r)) #renommer les colonnes car aggregate ne renomme pas
+      colnames(WCIE)<-c(mexpo$call[[4]],paste0("WCIE", r)) #Rename the columns because aggregate does not rename them automatically
       data_cum <-  cbind(data_cum,WCIE[paste0("WCIE", r)])
     }
   }
@@ -314,20 +311,19 @@ WCIE2F <- function(mexpo,var.time, times,
   ##############################################
 
   if (reg.type=="logistic"){
-    data.outcome <- merge(data, data_cum, by=mexpo$call[[4]]) #récupère uniquement les individus utilisés dans le modèle d'exposition et également présent dans le data pour le modèle d'expo
-
-    # remplacer les expo par les variables d'exposition dans la formule
+    data.outcome <- merge(data, data_cum, by=mexpo$call[[4]]) #Retrieve only the individuals used in the exposure model and also present in the data for the exposure model
+    # Replace the exposure variables in the formula with the exposure variables themselves
     new_expo<-c(NULL)
-    new_expo <- paste(paste0("WCIE", seq_len(ncol(B2K))), collapse = "+") ## donne "ns1+ns2+ns3+nsi"
+    new_expo <- paste(paste0("WCIE", seq_len(ncol(B2K))), collapse = "+") ## give "ns1+ns2+ns3+nsi"
 
-    formdroite <- as.character(model[3]) ## la partie à droite du tilde
-    formdroitebis <- gsub("\\bWCIE\\b", paste("(", new_expo, ")"), formdroite) # remplace "expo", par "(ns1+ns2+ns3+ns4)"
+    formdroite <- as.character(model[3]) ## The part to the right of the tilde (~)
+    formdroitebis <- gsub("\\bWCIE\\b", paste("(", new_expo, ")"), formdroite) # replace "expo", by "(ns1+ns2+ns3+ns4)"
 
     new_formula <- as.formula(paste(as.character(model[2]),"~",formdroitebis))
 
     model_outcome <- glm(new_formula,family = binomial,data = data.outcome)
 
-    # récupérer quelques statistiques pour le summary :
+    # Retrieve some statistics for the summary:
 
     #log likelihood and AIC
     AIC <- AIC(model_outcome)
@@ -340,21 +336,20 @@ WCIE2F <- function(mexpo,var.time, times,
 
   }
   if (reg.type=="cox"){
-    data.outcome <- merge(data, data_cum, by=mexpo$call[[4]]) #récupère uniquement les individus utilisés dans le modèle d'exposition et également présent dans le data pour le modèle d'expo
-
-    # remplacer les expo par les variables d'exposition dans la formule
+    data.outcome <- merge(data, data_cum, by=mexpo$call[[4]]) #Retrieve only the individuals used in the exposure model and also present in the data for the exposure model
+    # Replace the exposure variables in the formula with the exposure variables themselves
     new_expo<-c(NULL)
-    new_expo <- paste(paste0("WCIE", seq_len(ncol(B2K))), collapse = "+") ## donne "ns1+ns2+ns3+nsi"
+    new_expo <- paste(paste0("WCIE", seq_len(ncol(B2K))), collapse = "+") ## give "ns1+ns2+ns3+nsi"
 
-    formdroite <- as.character(model[3]) ## la partie à droite du tilde
-    formdroitebis <- gsub("\\bWCIE\\b", paste("(", new_expo, ")"), formdroite) # remplace "expo", par "(ns1+ns2+ns3+ns4)"
+    formdroite <- as.character(model[3]) ## The part to the right of the tilde (~)
+    formdroitebis <- gsub("\\bWCIE\\b", paste("(", new_expo, ")"), formdroite) # replace "expo", by "(ns1+ns2+ns3+ns4)"
 
     new_formula <- as.formula(paste(as.character(model[2]),"~",formdroitebis))
 
     model_outcome <- coxph(new_formula,
                            data = data.outcome)
 
-    # récupérer quelques statistiques pour le summary :
+    # Retrieve some statistics for the summary:
 
     #log likelihood and AIC
     AIC <- AIC(model_outcome)
@@ -367,21 +362,20 @@ WCIE2F <- function(mexpo,var.time, times,
   }
 
   if (reg.type=="logistic.cond"){
-    data.outcome <- merge(data, data_cum, by=mexpo$call[[4]]) #récupère uniquement les individus utilisés dans le modèle d'exposition et également présent dans le data pour le modèle d'expo
-
-    # remplacer les expo par les variables d'exposition dans la formule
+    data.outcome <- merge(data, data_cum, by=mexpo$call[[4]]) #Retrieve only the individuals used in the exposure model and also present in the data for the exposure model
+    # Replace the exposure variables in the formula with the exposure variables themselves
     new_expo<-c(NULL)
-    new_expo <- paste(paste0("WCIE", seq_len(ncol(B2K))), collapse = "+") ## donne "ns1+ns2+ns3+nsi"
+    new_expo <- paste(paste0("WCIE", seq_len(ncol(B2K))), collapse = "+") ## give "ns1+ns2+ns3+nsi"
 
-    formdroite <- as.character(model[3]) ## la partie à droite du tilde
-    formdroitebis <- gsub("\\bWCIE\\b", paste("(", new_expo, ")"), formdroite) # remplace "expo", par "(ns1+ns2+ns3+ns4)"
+    formdroite <- as.character(model[3]) ## The part to the right of the tilde (~)
+    formdroitebis <- gsub("\\bWCIE\\b", paste("(", new_expo, ")"), formdroite) # replace "expo", by "(ns1+ns2+ns3+ns4)"
 
     new_formula <- as.formula(paste(as.character(model[2]),"~",formdroitebis))
 
     model_outcome <- clogit(new_formula,
                            data = data.outcome)
 
-    # récupérer quelques statistiques pour le summary :
+    # Retrieve some statistics for the summary:
 
     #log likelihood and AIC
     AIC <- AIC(model_outcome)
@@ -393,7 +387,7 @@ WCIE2F <- function(mexpo,var.time, times,
     call <- as.call(new_model_outcome)
   }
 
-  return(list(model=model_outcome,data_expo=new_data, #à changer pour le dataexpo et mettre les colonnes qu'on veut
+  return(list(model=model_outcome,data_expo=new_data,
               mexpo=mexpo, data_outcome=data.outcome,
               call=call,splines.quantiles=quantiles,
               boundary.quantiles=c(b5,b95),

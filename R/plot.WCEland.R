@@ -6,9 +6,6 @@
 #' @name plot.WCEland
 #' @export
 #'
-#' @examples
-#' \dontrun{
-#' }
 plot.WCEland <- function(x, ...) {
   print(x$effectplot)
   invisible(x)

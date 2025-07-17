@@ -54,26 +54,25 @@ doOneBootWCIE <- function(boot_params,i,times,mexpo,
                           var.time,weightbasis,knots,knots.vector,
                           data, reg.type, model){
   call_hlme<-""
-  # Transformer l'appel du modèle en chaîne de caractères et enlever data=nom du jeu de donnée de l'utilisateur
+  # Convert the model call to a character string and remove the 'data=' argument with user's dataset name
   mexpo$call$data <- NULL
   call_hlme <- deparse(mexpo$call)
-  # remettre l'argument data = mexpo$data pour récupérer le jeu de donnée de l'utilisateur
+  # Reinsert the argument data = mexpo$data to use the user's dataset
   call_hlme <- gsub("\\)$", ", data=mexpo$data)", call_hlme)
-  # Ajouter l'argument maxiter = 0 à la chaîne
+  # Add the argument maxiter = 0 to the model call string
   call_hlme <- gsub("\\)$", ", maxiter = 0)", call_hlme)
-  #ajouter le B=boot_params[i,] pour utiliser les paramètres des n bootsrap
+  # Add B = boot_params[i, ] to use the parameters from the nth bootstrap
   call_hlme <- gsub("\\)$", ", B=boot_params[i,])", call_hlme)
 
-  # Évaluer la nouvelle chaîne comme un appel de fonction
+  # Evaluate the new string as a function call
   m_expo_boot <- eval(parse(text = call_hlme))
 
-  # obliger de faire sans passer par une fonction
+  # Have to do it without going through a function
   bpt_WCIE<-WCIE2F(mexpo = m_expo_boot, times = times,
                            var.time = var.time,weightbasis = weightbasis,knots = knots,
                            knots.vector = knots.vector,
                            data = data, reg.type = reg.type, model = model)
 
-  # changer la façon de récupérer la matrice de variance covariance suivant le reg.type
 
 
   return(list(coef=bpt_WCIE[[1]]$coefficients,V=vcov(bpt_WCIE[[1]]),

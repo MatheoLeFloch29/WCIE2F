@@ -23,12 +23,17 @@ knitr::opts_chunk$set(
 The R package lcmm provides one function to estimate statistical models based on the linear mixed model theory. It includes the estimation of:
 
 
-- exposition mixed models and different type of binary outcome models (WCEland),
+- exposition mixed models and different type of binary outcome models,
 
 
 The package mixWCE includes one main function: WCEland, which estimates the weighted cumulative effect of a time-varying exposure on different types of outcomes. This includes binary outcomes, time-to-event (survival) data, and conditional logistic models. A dedicated vignette describes each modeling context.
 
-For each model, maximum likelihood estimators are obtained using the default optimization algorithms provided by standard R functions such as glm or coxph, depending on the outcome type. The weighting of past exposure is modeled through a flexible basis function approach.
+The estimation procedure follows a two-step approach:
+
+- First, the user must fit a linear mixed-effects model to describe the trajectory of the time-varying exposure using, for example, the hlme function from the lcmm package.
+- Then, WCEland takes this exposure model as input and estimates the weights representing the cumulative effect of past exposures on the outcome of interest.
+
+For each model, maximum likelihood estimators are obtained using the default optimization algorithms provided by standard R functions such as glm or coxph, depending on the outcome type. The effects corresponding to the weight of past exposure are modeled through a flexible basis function approach.
 
 The package also provides several post-fit functions, including summary outputs, plots of the estimated weight functions, and simulation functions to generate synthetic datasets under various scenarios.
 
@@ -40,20 +45,20 @@ Each function isn't precisely introduced in the companion paper.
 
 ## WCEland
 
-This function is used to estimate the weighted cumulative effect of a time-varying exposure on different types of outcomes, including binary, survival, and conditional logistic models.
+This function is used to estimate the weighted cumulative effect of a time-varying exposure on different types of outcomes.
 
 ```{r, eval=FALSE}
-WCEland(mexpo, var.time, time.frame, weightbasis, knots=NULL, knots.vector = NULL, data,reg.type, model, n_boot = 500)
+WCEland(mexpo, var.time, time.frame, weightbasis="NS", knots=NULL, knots.vector = NULL, data,reg.type, model, n_boot = 500)
 ```
 
 
 # Dataset example
 
-## paquid subsample
+## Paquid subsample
 
 In the wikis, mixWCE is illutrated with paquid dataset. This is a subsample of 500 subjects from the original French prospective study Paquid. This dataset can not be used for epidemiological purposes as the subsample is not representative of the original cohort (in particular, dementia cases have been over sampled).  
 
-The data are in the longitudinal format including some variables such as 3 psychometric tests $MMSE$, $BVRT$, $IST$, the depressive symptomatology scale $CESD$ and the variables $age$, $agedem$ (age until dementia), $dem$ (boolean with 1 for dementia), $ageinit$, $CEP$ (education level) and $male$.</p>
+The data are in the longitudinal format including some variables such as 3 psychometric tests $MMSE$(Mini-Mental State Examination), $BVRT$ (Benton Visual Retention Test), $IST$(Isaacs Set Test), the depressive symptomatology scale $CESD$ and the variables $age$, $agedem$ (age until dementia), $dem$ (boolean with 1 for dementia), $age$_$init$, $CEP$ (education level) and $male$.</p>
 
 
 For visualizing the data (head of the table only):
@@ -62,15 +67,15 @@ For visualizing the data (head of the table only):
 head(paquid2)
 ```
 
-The different markers are collected at different times. In the dataset the timescale is $time$.
+The different markers are collected at different times. In the dataset the timescale is $time$ which corresponds to the difference between the subject's age and their initial age (age - age_init).
 
 For obtaining a quick summary of the data:
 ```{r,comment=''}
 summary(paquid2)
 ```
 
-Some variables have missing values. This is not a problem when using mixWCE package, the missing value is replace by his true value for expositon variable and delete for outcome variable.
-
+Some variables in the dataset contain missing values. However, this is not an issue when using the mixWCE package. Missing values in the exposure variable are automatically handled by leveraging the fitted mixed-effects model: they are replaced by their predicted values based on the subject’s observed trajectory and the model estimates. This approach is consistent with the methodology described by Wagner et al. (https://doi.org/10.1186/s12874-021-01403-w).
+In contrast, missing values in the outcome variable are simply excluded from the likelihood estimation, following standard practice in regression modeling.
 
 ## HIER2 outcome
 

@@ -74,18 +74,28 @@
 models based on the linear mixed model theory. It includes the
 estimation of:</p>
 <ul>
-<li>exposition mixed models and different type of binary outcome models
-(WCEland),</li>
+<li>exposition mixed models and different type of binary outcome
+models,</li>
 </ul>
 <p>The package mixWCE includes one main function: WCEland, which
 estimates the weighted cumulative effect of a time-varying exposure on
 different types of outcomes. This includes binary outcomes,
 time-to-event (survival) data, and conditional logistic models. A
 dedicated vignette describes each modeling context.</p>
+<p>The estimation procedure follows a two-step approach:</p>
+<ul>
+<li>First, the user must fit a linear mixed-effects model to describe
+the trajectory of the time-varying exposure using, for example, the hlme
+function from the lcmm package.</li>
+<li>Then, WCEland takes this exposure model as input and estimates the
+weights representing the cumulative effect of past exposures on the
+outcome of interest.</li>
+</ul>
 <p>For each model, maximum likelihood estimators are obtained using the
 default optimization algorithms provided by standard R functions such as
-glm or coxph, depending on the outcome type. The weighting of past
-exposure is modeled through a flexible basis function approach.</p>
+glm or coxph, depending on the outcome type. The effects corresponding
+to the weight of past exposure are modeled through a flexible basis
+function approach.</p>
 <p>The package also provides several post-fit functions, including
 summary outputs, plots of the estimated weight functions, and simulation
 functions to generate synthetic datasets under various scenarios.</p>
@@ -99,17 +109,16 @@ functions to generate synthetic datasets under various scenarios.</p>
 <h3 id="wceland">WCEland<a class="anchor" aria-label="anchor" href="#wceland"></a>
 </h3>
 <p>This function is used to estimate the weighted cumulative effect of a
-time-varying exposure on different types of outcomes, including binary,
-survival, and conditional logistic models.</p>
+time-varying exposure on different types of outcomes.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/WCEland.html">WCEland</a></span><span class="op">(</span><span class="va">mexpo</span>, <span class="va">var.time</span>, <span class="va">time.frame</span>, <span class="va">weightbasis</span>, knots<span class="op">=</span><span class="cn">NULL</span>, knots.vector <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">data</span>,<span class="va">reg.type</span>, <span class="va">model</span>, n_boot <span class="op">=</span> <span class="fl">500</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/WCEland.html">WCEland</a></span><span class="op">(</span><span class="va">mexpo</span>, <span class="va">var.time</span>, <span class="va">time.frame</span>, weightbasis<span class="op">=</span><span class="st">"NS"</span>, knots<span class="op">=</span><span class="cn">NULL</span>, knots.vector <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">data</span>,<span class="va">reg.type</span>, <span class="va">model</span>, n_boot <span class="op">=</span> <span class="fl">500</span><span class="op">)</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level2">
 <h2 id="dataset-example">Dataset example<a class="anchor" aria-label="anchor" href="#dataset-example"></a>
 </h2>
 <div class="section level3">
-<h3 id="paquid-subsample">paquid subsample<a class="anchor" aria-label="anchor" href="#paquid-subsample"></a>
+<h3 id="paquid-subsample">Paquid subsample<a class="anchor" aria-label="anchor" href="#paquid-subsample"></a>
 </h3>
 <p>In the wikis, mixWCE is illutrated with paquid dataset. This is a
 subsample of 500 subjects from the original French prospective study
@@ -118,10 +127,12 @@ subsample is not representative of the original cohort (in particular,
 dementia cases have been over sampled).</p>
 The data are in the longitudinal format including some variables such as
 3 psychometric tests
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>M</mi><mi>M</mi><mi>S</mi><mi>E</mi></mrow><annotation encoding="application/x-tex">MMSE</annotation></semantics></math>,
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>B</mi><mi>V</mi><mi>R</mi><mi>T</mi></mrow><annotation encoding="application/x-tex">BVRT</annotation></semantics></math>,
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>I</mi><mi>S</mi><mi>T</mi></mrow><annotation encoding="application/x-tex">IST</annotation></semantics></math>,
-the depressive symptomatology scale
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>M</mi><mi>M</mi><mi>S</mi><mi>E</mi></mrow><annotation encoding="application/x-tex">MMSE</annotation></semantics></math>(Mini-Mental
+State Examination),
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>B</mi><mi>V</mi><mi>R</mi><mi>T</mi></mrow><annotation encoding="application/x-tex">BVRT</annotation></semantics></math>
+(Benton Visual Retention Test),
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>I</mi><mi>S</mi><mi>T</mi></mrow><annotation encoding="application/x-tex">IST</annotation></semantics></math>(Isaacs
+Set Test), the depressive symptomatology scale
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>C</mi><mi>E</mi><mi>S</mi><mi>D</mi></mrow><annotation encoding="application/x-tex">CESD</annotation></semantics></math>
 and the variables
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>a</mi><mi>g</mi><mi>e</mi></mrow><annotation encoding="application/x-tex">age</annotation></semantics></math>,
@@ -129,7 +140,7 @@ and the variables
 (age until dementia),
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>d</mi><mi>e</mi><mi>m</mi></mrow><annotation encoding="application/x-tex">dem</annotation></semantics></math>
 (boolean with 1 for dementia),
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>a</mi><mi>g</mi><mi>e</mi><mi>i</mi><mi>n</mi><mi>i</mi><mi>t</mi></mrow><annotation encoding="application/x-tex">ageinit</annotation></semantics></math>,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>a</mi><mi>g</mi><mi>e</mi></mrow><annotation encoding="application/x-tex">age</annotation></semantics></math>_<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>i</mi><mi>n</mi><mi>i</mi><mi>t</mi></mrow><annotation encoding="application/x-tex">init</annotation></semantics></math>,
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>C</mi><mi>E</mi><mi>P</mi></mrow><annotation encoding="application/x-tex">CEP</annotation></semantics></math>
 (education level) and
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi><mi>a</mi><mi>l</mi><mi>e</mi></mrow><annotation encoding="application/x-tex">male</annotation></semantics></math>.
@@ -149,7 +160,9 @@ and the variables
 <span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a> [<span class="dv">38</span>;<span class="dv">5</span>;<span class="dv">246</span>m<span class="co"># ℹ 2 more variables: HIER2 &lt;dbl&gt;, time &lt;dbl&gt; [39m</span></span></code></pre></div>
 <p>The different markers are collected at different times. In the
 dataset the timescale is
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>t</mi><mi>i</mi><mi>m</mi><mi>e</mi></mrow><annotation encoding="application/x-tex">time</annotation></semantics></math>.</p>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>t</mi><mi>i</mi><mi>m</mi><mi>e</mi></mrow><annotation encoding="application/x-tex">time</annotation></semantics></math>
+which corresponds to the difference between the subject’s age and their
+initial age (age - age_init).</p>
 <p>For obtaining a quick summary of the data:</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">summary</span>(paquid2)</span>
 <span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>       ID             MMSE            BVRT            IST       </span>
@@ -184,9 +197,16 @@ dataset the timescale is
 <span id="cb3-31"><a href="#cb3-31" tabindex="-1"></a><span class="st"> 3rd Qu.:1.0000   3rd Qu.: 9.261  </span></span>
 <span id="cb3-32"><a href="#cb3-32" tabindex="-1"></a><span class="st"> Max.   :1.0000   Max.   :20.159  </span></span>
 <span id="cb3-33"><a href="#cb3-33" tabindex="-1"></a><span class="st"> NA'</span>s   <span class="sc">:</span><span class="dv">46</span>                       </span></code></pre></div>
-<p>Some variables have missing values. This is not a problem when using
-mixWCE package, the missing value is replace by his true value for
-expositon variable and delete for outcome variable.</p>
+<p>Some variables in the dataset contain missing values. However, this
+is not an issue when using the mixWCE package. Missing values in the
+exposure variable are automatically handled by leveraging the fitted
+mixed-effects model: they are replaced by their predicted values based
+on the subject’s observed trajectory and the model estimates. This
+approach is consistent with the methodology described by Wagner et
+al. (<a href="https://doi.org/10.1186/s12874-021-01403-w" class="external-link uri">https://doi.org/10.1186/s12874-021-01403-w</a>). In
+contrast, missing values in the outcome variable are simply excluded
+from the likelihood estimation, following standard practice in
+regression modeling.</p>
 </div>
 <div class="section level3">
 <h3 id="hier2-outcome">HIER2 outcome<a class="anchor" aria-label="anchor" href="#hier2-outcome"></a>

@@ -184,6 +184,31 @@ be taken to avoid overfitting or misinterpretation of the WCIE effect. The WCIE 
 should be interpreted as a marginal cumulative effect, conditional on other covariates in
 the model
 }
+\examples{
+\dontrun{
+library(lcmm)
+# Fit linear mixed-effects model for exposure
+m_expo <- hlme(E ~ X + time,
+               random = ~ time,
+               subject = "ID",
+               data = data_expo,
+               returndata = TRUE)
+
+# Estimate weighted cumulative exposure effect in Cox model
+m_outcome <- WCEland(mexpo = m_expo,
+                     var.time = "time",
+                     time.frame = c(-10, 0, 1),
+                     weightbasis = "NS",
+                     knots = 1,
+                     data = data_outcome,
+                     reg.type = "cox",
+                     model = Surv(time, Y) ~ X + WCIE,
+                     n_boot = 500)
+
+ summary(m_outcome)
+}
+
+}
 \references{
 Maud Wagner et al. “Time-varying associations between an exposure history and a subsequent health
 outcome : a landmark approach to identify critical windows”. In : BMC Med Res Methodol (2021).

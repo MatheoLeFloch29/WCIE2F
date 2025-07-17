@@ -42,6 +42,7 @@ To run the examples proposed in this website, the following package are also nee
 - ggplot2
 - dplyr
 - splines
+- NormPsy
 
 &nbsp;
 
@@ -49,6 +50,10 @@ To run the examples proposed in this website, the following package are also nee
 
 <p align="justify">
 This website is intended to help the mixWCE users in their statistical analyses. It provides an [overview](articles/mixWCE.html) of the package, several [vignettes](articles/index.html), and the [help pages](reference/index.html) of all functions included in the mixWCE package.
+</p>
+
+<p align="justify">
+The method implemented here is based on the work of Wagner et al. (<a href="https://doi.org/10.1186/s12874-021-01403-w">https://doi.org/10.1186/s12874-021-01403-w</a>), which introduced the use of weighted cumulative exposure in longitudinal contexts.
 </p>
 
 <p align="justify">

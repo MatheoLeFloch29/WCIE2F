@@ -10,17 +10,233 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
+
 ```{r setup, include = FALSE}
+library(mixWCE)
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
+
+#pkgdown::build_site()
+```
+
+# Background and definitions 
+
+## Modeling the Exposure Trajectory
+
+We assume the true continuous exposure $E_{i}^*(t)$ of subject $i$ at time $t$ follows a normal distribution. Then the underlying true exposure follows a linear mixed-effects model:
+
+$$ E_{ij}=\underbrace{X_i(t)^\top\beta + Z_{i}(t)^\top b_i}_{E_i^*(t_{ij})}+\varepsilon_{ij} $$
+
+where $X_i(t)$ is the vector of explanatory variables, $\beta$ the fixed effects, $Z_i(t)$ a subset of $X_i(t)$, and $b_i \sim N$(0,B) are subject-specific random effects (B is the variance-covariance matrix). Here time evolution is described by a simple time function but that can be described by other time functions (for example natural cubic splines to model more flexible variations).
+
+## Event Modeling
+
+We define the WCIE (weighted cumulative exposure) for subject $i$ as the weighted sum of the true exposure $E_{i}^*(t)$ over a time window $[-S,0]$ with unknown weights $w(t)$ and $S$ the time window exposure.
+
+This cumulative exposure is then included in a Cox proportional hazards model to estimate the hazard of the event of interest for subject $i$:
+
+\begin{align*}
+    \lambda_i(t_{surv}, X, \alpha, \delta) &= \lambda_0(t_{surv}) \exp\left[\alpha_p X_{ip} + WCIE_i \right] \\
+    &= \lambda_0(t_{surv}) \exp\left[\alpha_pX_{ip}+\sum_{k=0}^1\delta_k\sum_{t=-10}^0B_k(t)\times normMMSE_i^*(t)\right]
+    \label{eq7}
+\end{align*}
+
+where $\lambda_0(t_{surv})$ is the baseline hazard function, $\alpha_p$ are the coefficients associated with the covariates $X_{ip}$, and the sum represents the weighted cumulative effect of the past exposure $E_i^*(t)$ corrected for measurement error, over the predefined exposure window $[-S,0]$ relative to time $t$.
+
+## Modeling the Association
+
+To estimate the exposure effects in the model, we first need to estimate the weight function $w(t)$. This function is expressed as a linear combination of basis functions:
+
+$$w(t)= \sum_{k=0}^{K} \delta_k B_k(t)$$
+
+where the coefficients $\delta_k$ are to be estimated and $B(k)$ a basis functions.
+
+Estimating the exposure effects means estimating the coefficients $\delta_k$, which weight the contributions of each basis function in the logistic model.
+
+This vignette illustrates how to estimate  weighted cumulative effect of a longitudinal exposition following the methodology described in Wagner et al. (2021 - https://doi.org/10.1186/s12874-021-01403-w). 
+
+# Example for paquid data
+
+In this example, we study the time-to-event of physical dependency defined by the HIER2 score from the Paquid dataset. HIER is a physical dependency score with four levels: 0 (no dependency), 1 (mild dependency), 2 (moderate dependency), and 3 (severe dependency). For binary models, the outcome is defined as an indicator of moderate to severe dependency, i.e., a HIER score greater than or equal to 2. Individuals are followed over time until the event occurs or they are censored.
+
+We investigate the effects of an exposure corresponding to the Mini-Mental State Examination (MMSE) score, a psychometric test of global cognitive functioning scored as an integer between 0 and 30. The sample includes elderly individuals followed over time, with adjustments possible for covariates. Interactions are not considered here.
+
+## paquid subset
+
+### Exposition variable: normalized MMSE
+
+As the MMSE score has a highly skewed distribution, we use its normalized version, which is easily obtained using the NormPsy package. This normalization is necessary to satisfy the assumptions of the linear mixed model used to describe the exposure trajectory, particularly the assumption that the residuals (and random effects) follow a normal distribution.
+
+```{r}
+library(NormPsy)
+paquid2$normMMSE <- normMMSE(paquid2$MMSE)
+```
+
+### Split dataset
+
+In order to obtain our two time windows, we split the dataset in two sub dataset. The second one corresponding to the outcome windows and keep one line per subject when he developp at least a moderate physical dependency (HIER >= 2). Specifically, the time at which the individual first develops at least moderate physical dependency (i.e., HIER ≥ 2). This event must occur after time $t = 0$, which is considered the landmark time, fixed here at 10 years of follow-up.
+The second dataset corresponding to the entire exposition window before this event $t=[-S,0]$ which no patient have the outcome.
+
+```{r,message=F}
+library(dplyr)
+
+
+paquid_expo <- paquid2 %>%
+  arrange(ID, time) %>%
+  group_by(ID) %>%
+  filter(time<=10 & HIER2==0) %>% 
+  mutate(time2=-10+time)#transform into retrospective time variable
+
+
+paquid_outcome <- paquid_expo %>%
+  select(ID) %>% distinct() %>% 
+  inner_join(paquid2, by="ID") %>% 
+  arrange(ID, time) %>%                
+  group_by(ID) %>% 
+  filter((time) >= 10) %>%   
+  slice(
+    if (any(HIER2 == 1, na.rm = TRUE)) {
+      which(HIER2 == 1)[1]        # keep the first line when the patient develop the outcome
+    } else {
+      n()                 # else keep the last follow up mesure              
+    }
+  ) %>% 
+  mutate(time2=time-10) %>% #take the time after t=0
+  ungroup()
+
+# keep exactly the same patient than outcome data
+paquid_expo <- paquid_outcome %>% 
+  select(ID) %>% 
+  inner_join(paquid_expo, by="ID")
+
+
 ```
 
 
-This vignette illustrates how to estimate weighted cumulative effect of a longitudinal exposition following the methodology described in Wagner et al. (2021 - https://doi.org/10.1186/s12874-021-01403-w). 
+### Description of the sample
+
+```{r}
+
+expo <- paquid_expo %>% group_by(ID) %>% arrange(time) %>%
+  filter(row_number()==1)
+summary(expo)
+
+summary(paquid_outcome)
+
+```
+
+## Models considered
+
+First, We consider the following linear mixed model, where $i$
+is the subject and $j$ the repeated measurement:
+
+$$ normMMSE_{ij}= \beta_0+\beta_1time_{ij}+\beta_2sex_{i} + b_{0i}+b_{1i}time_{ij}+\varepsilon_{ij} $$
+Where $b_{i}\sim N(0,$B) and $\varepsilon_{ij}\sim N(0,\sigma^2)$
+
+Next, we model the time-to-event of physical dependency (HIER2 ≥ 2) using a Cox proportional hazards model that include a weighted cumulative exposure (WCE) term to account for the time-dependent influence of cognitive performance. The model is written as:
+
+$$ \lambda_i(t_{surv}, X, \alpha, \delta)=\lambda_0(t_{surv})\exp\left[\alpha_1sex_i+\sum_{k=0}^1\delta_k\sum_{t=-10}^0B_k(t)\times normMMSE_i^*(t)\right]$$
 
 
+where $B_k(t)$ is a basis of natural cubic splines with $0$ chosen internal knots.
 
 
-To be developped !!!!!!!!
+## Estimate the exposure effect with 0 knots
+
+To begin, we need to fit a linear mixed-effects exposure model using the $hlme$ function from the $lcmm$ package. 
+In the second step, we reuse the linear mixed-effects model fitted in the exposure stage to estimate the time-varying effect of the exposure on the hazard of physical dependency. Specifically, we apply the $WCEland$ function to combine the exposure model with a Cox proportional hazards model that incorporates a weighted cumulative exposure (WCE) structure. This allows us to capture how past cognitive performance influences the risk of developing dependency over time.
+To conclude, we chose to use a natural spline basis with no internal knots (i.e., a linear effect over time) and performed 10 bootstrap replications to obtain bias-corrected variance estimates for the weighted cumulative exposure effects. The number of bootstrap samples was intentionally limited to 10 to reduce computation time during this illustration, although a larger number of replications would be recommended in practice for more stable variance estimation.
+
+```{r, message=F}
+```
+
+
+```{r, message=F}
+library(lcmm)
+library(splines)
+library(mixWCE)
+library(ggplot2)
+library(survival)
+
+m_expo <- hlme(normMMSE~time2+male,
+             random = ~time2,
+             subject = "ID",data = paquid_expo,returndata = T)
+
+m_outcome<-WCEland(mexpo = m_expo,var.time = "time2",time.frame = c(-10,0,1),weightbasis = "NS"
+              ,knots = 0,data = paquid_outcome
+              ,reg.type = "cox",model = Surv(time2,HIER2)~male+WCIE,n_boot = 10)
+```
+
+
+## Description of the WCE model
+
+### summary of the model
+
+The output above presents the full summary of the WCEland model fit. 
+It includes:
+
+- **Parameter Estimates (bootstrap-based):** Coefficients of the outcome Cox model estimated using a weighted bootstrap approach. These include the estimated coefficients, standard errors, Wald test statistics, and p-values.
+
+- **Goodness-of-fit statistics:** Global fit metrics such as the maximum log-likelihood and the Akaike Information Criterion (AIC), which help evaluate and compare model adequacy.
+
+- **Variance-covariance matrix:** Estimated variance-covariance matrix of the model parameters, useful for inference and understanding parameter correlations.
+
+- **Weighted cumulative exposure (WCE) effect summary:** A table showing the time-specific estimated effects of past exposure on the outcome. For each lag time, the table includes the effect estimate, its standard error, the Wald statistic, and the associated p-value. This highlights how the influence of the exposure evolves over time.
+
+- **Global WCE effect summary:** Mean cumulative effect across time lags, its standard error, the overall Wald statistic, and p-value — providing a concise summary of the exposure effect over the entire time window.
+
+```{r}
+summary(m_outcome)
+```
+
+### plot the expsoition trajectory association
+
+The figure displays the estimated **weighted cumulative exposure (WCE) effect** trajectory over time. Each point on the x-axis represents a specific time lag preceding the outcome, while the y-axis shows the estimated effect of exposure at that time on the outcome.
+
+- The **grey curve** shows the estimated time-varying exposure effect.
+- The **shaded area** represents the 95% confidence interval around the estimate, obtained through bootstrap replicates.
+- The **horizontal line at zero** helps visualize whether the estimated effect is statistically different from no effect.
+
+```{r}
+plot(m_outcome)
+```
+
+This plot displays the estimated contribution of past exposure to the **log-hazard** of experiencing the outcome, assuming exposure levels at all other time points are held constant.
+
+## Estimate the exposure effect with more than 0 knots
+
+In order to use more than one internal knot in the $WCEland$ function, the time-dependent exposure must first be modeled using flexible functions of time. In this example, we use natural cubic splines to model the time trajectory of the exposure in the $hlme$ function, which allows for greater flexibility and consistency with the spline basis used in the weighted cumulative exposure framework.
+
+```{r, message=F}
+
+m_expo2 <- hlme(normMMSE~ns(time2,knots = c(-5),Boundary.knots = c(-9,-1))+male,
+             random = ~ns(time2,knots = c(-5),Boundary.knots = c(-9,-1)),
+             subject = "ID",data = paquid_expo,returndata = T)
+
+m_expo3 <- hlme(normMMSE~ns(time2,knots = c(-7,-3),Boundary.knots = c(-9,-1))+male,
+             random = ~ns(time2,knots = c(-7,-3),Boundary.knots = c(-9,-1)),
+             subject = "ID",data = paquid_expo,returndata = T)
+
+m_expo4 <- hlme(normMMSE~ns(time2,knots = c(-7,-5,-3),Boundary.knots = c(-9,-1))+male,
+             random = ~ns(time2,knots = c(-7,-5,-3),Boundary.knots = c(-9,-1)),
+             subject = "ID",data = paquid_expo,returndata = T)
+
+m_expo5 <- hlme(normMMSE~ns(time2,knots = c(-8,-6,-4,-2),Boundary.knots = c(-9,-1))+male,
+             random = ~ns(time2,knots = c(-8,-6,-4,-2),Boundary.knots = c(-9,-1)),
+             subject = "ID",data = paquid_expo,returndata = T)
+
+m_expo2$AIC
+m_expo3$AIC
+m_expo4$AIC
+m_expo5$AIC
+
+m_outcome2 <- WCEland(mexpo = m_expo2,var.time = "time2",time.frame = c(-10,0,1),weightbasis = "NS"
+              ,knots = 1,data = paquid_outcome
+              ,reg.type = "cox",model = Surv(time2,HIER2)~male+WCIE,n_boot = 10)
+
+
+```
+
+In model selection, a lower AIC suggests a better-fitting model. Therefore, we selected the linear mixed model with 1 internal knots.
